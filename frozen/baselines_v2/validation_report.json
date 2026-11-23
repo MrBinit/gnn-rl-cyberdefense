@@ -1,0 +1,132 @@
+{
+  "raw_csv": "data/raw/ToN-IoT/train_test_network.csv",
+  "cleaning": {
+    "raw_rows": 211043,
+    "duplicate_rows": 20599,
+    "clean_rows": 190444,
+    "dropped_cols": [
+      "dns_query",
+      "http_uri",
+      "http_user_agent",
+      "ssl_subject",
+      "ssl_issuer"
+    ]
+  },
+  "reported_official_comparison": {
+    "per_class": {
+      "normal": {
+        "this_copy": 50000,
+        "reported_official": 300000
+      },
+      "backdoor": {
+        "this_copy": 20000,
+        "reported_official": 20000
+      },
+      "ddos": {
+        "this_copy": 20000,
+        "reported_official": 20000
+      },
+      "dos": {
+        "this_copy": 20000,
+        "reported_official": 20000
+      },
+      "injection": {
+        "this_copy": 20000,
+        "reported_official": 20000
+      },
+      "password": {
+        "this_copy": 20000,
+        "reported_official": 20000
+      },
+      "ransomware": {
+        "this_copy": 20000,
+        "reported_official": 20000
+      },
+      "scanning": {
+        "this_copy": 20000,
+        "reported_official": 20000
+      },
+      "xss": {
+        "this_copy": 20000,
+        "reported_official": 20000
+      },
+      "mitm": {
+        "this_copy": 1043,
+        "reported_official": 1043
+      }
+    },
+    "this_copy_rows": 211043,
+    "reported_official_rows": 461043,
+    "differing_classes": [
+      "normal"
+    ],
+    "attack_counts_match": true,
+    "verdict": "attack counts match; normal traffic differs (likely a normal-class subsample)"
+  },
+  "prepared_splits": {
+    "rows": {
+      "train": 133310,
+      "val": 28567,
+      "test": 28567
+    },
+    "exact_duplicate_rows_after_cleaning": 0,
+    "row_overlap_between_splits": {
+      "train&val": 0,
+      "train&test": 0,
+      "val&test": 0
+    },
+    "feature_group_overlap_between_splits": {
+      "train&val": 0,
+      "train&test": 0,
+      "val&test": 0
+    },
+    "max_class_share_deviation": 6.440613089929437e-05,
+    "attack_share": {
+      "train": 0.7794088965568975,
+      "val": 0.7794308117758253,
+      "test": 0.7793958063499843
+    },
+    "class_counts": {
+      "train": {
+        "backdoor": 13096,
+        "ddos": 13995,
+        "dos": 13297,
+        "injection": 13976,
+        "mitm": 728,
+        "normal": 29407,
+        "password": 13902,
+        "ransomware": 10314,
+        "scanning": 14000,
+        "xss": 10595
+      },
+      "val": {
+        "backdoor": 2808,
+        "ddos": 2999,
+        "dos": 2847,
+        "injection": 2994,
+        "mitm": 157,
+        "normal": 6301,
+        "password": 2980,
+        "ransomware": 2210,
+        "scanning": 3000,
+        "xss": 2271
+      },
+      "test": {
+        "backdoor": 2807,
+        "ddos": 2999,
+        "dos": 2848,
+        "injection": 2994,
+        "mitm": 156,
+        "normal": 6302,
+        "password": 2979,
+        "ransomware": 2211,
+        "scanning": 3000,
+        "xss": 2271
+      }
+    },
+    "test_rows_with_feature_vector_in_train": 0.21853887352539644,
+    "test_attack_flows_from_hosts_seen_attacking_in_train": 1.0
+  },
+  "hard_failures": [],
+  "passed": true
+}

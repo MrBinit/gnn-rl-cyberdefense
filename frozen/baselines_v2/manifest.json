@@ -1,0 +1,188 @@
+{
+  "tag": "v2",
+  "created_utc": "2026-11-21T10:54:53+00:00",
+  "raw_csv": {
+    "path": "data/raw/ToN-IoT/train_test_network.csv",
+    "sha256": "26ddc513552de36de6428b2e578efaed2b57504c716dfba847cc0109a64e1974"
+  },
+  "splits": {
+    "train": {
+      "rows": 133310,
+      "sha256": "a55eab2678f57706c27947ec0d55fe516b62d93b739ecd600f4fa7853017ea9d"
+    },
+    "val": {
+      "rows": 28567,
+      "sha256": "7af5650f57bea4f3e63ccfb1ab2d9102aa2f956556de314e88d3c87614798a99"
+    },
+    "test": {
+      "rows": 28567,
+      "sha256": "c1c7dc87d1f369a88716650b231c5629f7b594a5f090be9feb1078529944b854"
+    }
+  },
+  "seeds_per_experiment": {
+    "baselines": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "baselines_tuned_disjoint": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ]
+  },
+  "config": {
+    "name": "default",
+    "seed": 42,
+    "paths": {
+      "results_dir": "results",
+      "tb_dir": "results/tensorboard"
+    },
+    "ton_iot": {
+      "raw_csv": "data/raw/ToN-IoT/train_test_network.csv",
+      "processed_dir": "data/processed/ton_iot",
+      "eda_dir": "results/eda",
+      "make_figures": true,
+      "drop_duplicates": true,
+      "text_cols": [
+        "dns_query",
+        "http_uri",
+        "http_user_agent",
+        "ssl_subject",
+        "ssl_issuer"
+      ],
+      "id_cols": [
+        "src_ip",
+        "src_port",
+        "dst_ip",
+        "dst_port"
+      ],
+      "log_transform": true,
+      "min_category_freq": 20
+    },
+    "split": {
+      "n_folds": 20,
+      "val_folds": 3,
+      "test_folds": 3,
+      "seed": 42,
+      "max_group_size": 200
+    },
+    "baseline": {
+      "models": [
+        "random_forest",
+        "xgboost"
+      ],
+      "tasks": [
+        "binary",
+        "multiclass"
+      ],
+      "protocols": [
+        "random",
+        "unseen_attack",
+        "unseen_host"
+      ],
+      "unseen_host_min_attack_flows": 500,
+      "imbalance": [
+        "class_weight"
+      ],
+      "tune_threshold": true,
+      "fixed_fprs": [
+        0.0025,
+        0.01
+      ],
+      "seeds": [
+        42
+      ],
+      "use_tuned": false,
+      "random_forest": {
+        "n_estimators": 300,
+        "max_depth": null,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "max_samples": null,
+        "criterion": "gini",
+        "class_weight_power": 1.0,
+        "n_jobs": -1
+      },
+      "xgboost": {
+        "n_estimators": 1000,
+        "learning_rate": 0.1,
+        "max_depth": 8,
+        "min_child_weight": 1.0,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "gamma": 0.0,
+        "reg_lambda": 1.0,
+        "reg_alpha": 0.0,
+        "max_delta_step": 0.0,
+        "class_weight_power": 1.0,
+        "early_stopping_rounds": 50,
+        "n_jobs": -1
+      }
+    },
+    "tuning": {
+      "models": [
+        "random_forest",
+        "xgboost"
+      ],
+      "rf_trials": 30,
+      "xgb_trials": 40,
+      "timeout_minutes": null,
+      "holdouts": [
+        "xss",
+        "dos",
+        "ddos"
+      ],
+      "weights": {
+        "macro_f1": 0.5,
+        "unseen_recall": 0.5,
+        "fpr": 2.0
+      },
+      "prune": true,
+      "prune_after_holdouts": 2,
+      "train_fraction": 1.0,
+      "out_dir": "results/tuning_disjoint"
+    },
+    "validation": {
+      "official_csv": null,
+      "out_dir": "results/validation"
+    },
+    "freeze": {
+      "tag": "v2",
+      "out_dir": "frozen",
+      "overwrite": false
+    }
+  },
+  "environment": {
+    "python": "3.12.13",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "numpy": "2.5.5",
+    "pandas": "3.1.1",
+    "scikit-learn": "1.9.1",
+    "xgboost": "3.4.1",
+    "optuna": "5.1.0",
+    "imbalanced-learn": "0.14.2",
+    "torch": "2.15.0"
+  },
+  "git": {
+    "commit": null,
+    "uncommitted_changes": true
+  },
+  "files": {
+    "data_metadata.json": "a71e73e2fcdb942b022bb6d8a85f596151f06ea90216b1a6c7e47b392af71c56",
+    "validation_report.json": "e8686bfa31c228a04e515e846b911490c9978130f82702f89557a1c31b1d88c5",
+    "results/baselines/summary.csv": "7c8e80c995c18f64629f7cc8463ff80c406717e4c964c5577651438727749763",
+    "results/baselines/summary_aggregated.csv": "d8f1bc95d931ce286c1c9d4718cdf3f22f4c1106179a6736ea80659091113c70",
+    "results/baselines_tuned_disjoint/summary.csv": "5a45d6c5f093711abae2aeeb06ff4482d2fb4df212e235890c15eb0188dfb999",
+    "results/baselines_tuned_disjoint/summary_aggregated.csv": "7d4ebdd6b24ff5dc185f95158919225b251be80a81b6c689febe64c6e83c3579",
+    "results/tuning_disjoint/random_forest/best_params.json": "00e8356de2cd02e0fb510c0669298f2d5b9bb86a4cc4f8bfea9a76700b4a3d86",
+    "results/tuning_disjoint/random_forest/trials.csv": "c25e4642c228982b1949f255d7e01288d1e7e134abb3e4e6a635908e5ebf09eb",
+    "results/tuning_disjoint/xgboost/best_params.json": "84b06995508ca1c7d604df734d1bfbac06da99e63b63f1a1d4b5d7684840ad9e",
+    "results/tuning_disjoint/xgboost/trials.csv": "7e9a8f6f38e4d9fe6658df4692454e7f9cd60b1fdac0729b84b884e71dc25319"
+  }
+}

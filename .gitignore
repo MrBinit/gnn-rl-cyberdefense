@@ -1,0 +1,45 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# data
+data/
+results/
+.pytest_cache/
+.ruff_cache/
+
+# Datasets: never commit raw or processed data, wherever it is placed
+data/
+datasets/
+*NFV3DATA*/
+NF-*.csv
+NetFlow_v3_Features.csv
+UNSW-NB15*.csv
+*CICIDS*.csv
+*CIC-IDS*.csv
+train_test_network.csv
+auth.txt*
+redteam.txt*
+*.parquet
+*.pt
+*.pcap
+*.pcapng
+*.zip
+*.gz
+*.tar
+*.7z
+
+# Local tooling / OS
+.DS_Store
+.claude/
+
+# Frozen baseline snapshots are small and must stay tracked
+!frozen/
+!frozen/**

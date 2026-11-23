@@ -1,0 +1,76 @@
+[project]
+name = "gnn"
+version = "0.1.0"
+description = "Adaptive cyberattack detection and automated defense using GNN and RL"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "gymnasium>=1.4.0",
+    "imbalanced-learn>=0.14.2",
+    "matplotlib>=3.11.2",
+    "networkx>=3.7",
+    "numpy>=2.5.5",
+    "optuna>=5.1.0",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "pydantic>=2.14.4",
+    "pydantic-settings>=2.16.3",
+    "scikit-learn>=1.9.1",
+    "seaborn>=0.13.2",
+    "stable-baselines3>=2.9.2",
+    "tensorboard>=2.21.0",
+    "torch>=2.15.0",
+    "torch-geometric>=2.8.1",
+    "tqdm>=4.70.1",
+    "xgboost>=3.4.1",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+    "jupyter>=1.1.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "cyberdefense"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "N",        # pep8-naming
+    "UP",       # pyupgrade
+    "B",        # bugbear
+    "SIM",      # simplify
+    "PT",       # pytest style
+    "NPY",      # numpy
+    "PD",       # pandas-vet
+    "RUF",      # ruff-specific
+]
+ignore = [
+    "N815",     # ToN-IoT column names like dns_AA are external
+]
+
+[tool.ruff.lint.per-file-ignores]
+# xgboost must load before torch, and torch is pinned to one thread, before other imports.
+"tests/conftest.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = [
+    "ignore:`torch.jit.script` is deprecated:FutureWarning",
+    "ignore:vert. bool was deprecated:matplotlib.MatplotlibDeprecationWarning",  # seaborn internals
+]

@@ -1,0 +1,69 @@
+{
+  "model": "random_forest",
+  "trial": 21,
+  "params": {
+    "n_estimators": 458,
+    "max_depth": 20.0,
+    "min_samples_split": 4,
+    "min_samples_leaf": 9,
+    "max_features": "sqrt",
+    "max_samples": 0.9,
+    "criterion": "gini",
+    "class_weight_power": 0.11005192452767676
+  },
+  "val_scores": {
+    "macro_f1": 0.942606440899209,
+    "f1_xss": 0.9127780200610554,
+    "f1_dos": 0.9801277501774308,
+    "f1_ddos": 0.9777403035413154,
+    "unseen_recall_xss": 0.9973579920739762,
+    "fpr_xss": 0.010950642755118235,
+    "unseen_recall_dos": 0.8774148226203021,
+    "fpr_dos": 0.006506903666084749,
+    "unseen_recall_ddos": 0.9936645548516172,
+    "fpr_ddos": 0.015394381844151721,
+    "unseen_recall": 0.9561457898486317,
+    "fpr": 0.010950642755118235,
+    "objective": 0.9274748298636839,
+    "seconds": 26.5074787910562
+  },
+  "default_val_scores": {
+    "macro_f1": 0.9524139729939012,
+    "f1_xss": 0.917900403768506,
+    "f1_dos": 0.9818757698398733,
+    "f1_ddos": 0.9784748873685967,
+    "unseen_recall_xss": 0.6820783795684721,
+    "fpr_xss": 0.0019044596095857801,
+    "unseen_recall_dos": 0.9381805409202669,
+    "fpr_dos": 0.002380574511982225,
+    "unseen_recall_ddos": 0.7302434144714905,
+    "fpr_ddos": 0.0022218695445167433,
+    "unseen_recall": 0.7835007783200765,
+    "fpr": 0.0021689678886949166,
+    "objective": 0.863619439879599,
+    "seconds": 22.319656166015193
+  },
+  "tuning_config": {
+    "models": [
+      "random_forest",
+      "xgboost"
+    ],
+    "rf_trials": 30,
+    "xgb_trials": 40,
+    "timeout_minutes": null,
+    "holdouts": [
+      "xss",
+      "dos",
+      "ddos"
+    ],
+    "weights": {
+      "macro_f1": 0.5,
+      "unseen_recall": 0.5,
+      "fpr": 2.0
+    },
+    "prune": true,
+    "prune_after_holdouts": 2,
+    "train_fraction": 1.0,
+    "out_dir": "results/tuning_disjoint"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "model": "xgboost",
+  "trial": 19,
+  "params": {
+    "learning_rate": 0.18183714122898734,
+    "max_depth": 5,
+    "min_child_weight": 1.235510820931101,
+    "subsample": 0.9427380039676702,
+    "colsample_bytree": 0.9291354966390682,
+    "gamma": 1.7643989868783967,
+    "reg_lambda": 0.1370479483919337,
+    "reg_alpha": 2.3869055123931484,
+    "max_delta_step": 8,
+    "class_weight_power": 0.601707337093315
+  },
+  "val_scores": {
+    "f1_ddos": 0.9697975439761035,
+    "f1_dos": 0.9832918592250267,
+    "f1_xss": 0.918918918918919,
+    "fpr": 0.007406231815055811,
+    "fpr_ddos": 0.007935248373274084,
+    "fpr_dos": 0.0066656086335502305,
+    "fpr_xss": 0.0076178384383431205,
+    "macro_f1": 0.9436363188480433,
+    "objective": 0.9349186216243418,
+    "seconds": 18.839357999851927,
+    "unseen_recall": 0.9558258516608634,
+    "unseen_recall_ddos": 0.995998666222074,
+    "unseen_recall_dos": 0.9199157007376185,
+    "unseen_recall_xss": 0.9515631880228974
+  },
+  "default_val_scores": {
+    "f1_ddos": 0.9745033112582782,
+    "f1_dos": 0.9858557284299858,
+    "f1_xss": 0.929060773480663,
+    "fpr": 0.006559805321906575,
+    "fpr_ddos": 0.006030788763688303,
+    "fpr_dos": 0.0077765434058086015,
+    "fpr_xss": 0.005872083796222821,
+    "macro_f1": 0.9541718738842716,
+    "objective": 0.9295150488298427,
+    "seconds": 37.84485987504013,
+    "unseen_recall": 0.93109744506304,
+    "unseen_recall_ddos": 0.9936645548516172,
+    "unseen_recall_dos": 0.946259220231823,
+    "unseen_recall_xss": 0.8533685601056803
+  },
+  "tuning_config": {
+    "models": [
+      "random_forest",
+      "xgboost"
+    ],
+    "rf_trials": 30,
+    "xgb_trials": 40,
+    "timeout_minutes": null,
+    "holdouts": [
+      "xss",
+      "dos",
+      "ddos"
+    ],
+    "weights": {
+      "macro_f1": 0.5,
+      "unseen_recall": 0.5,
+      "fpr": 2.0
+    },
+    "prune": true,
+    "prune_after_holdouts": 2,
+    "train_fraction": 1.0,
+    "out_dir": "results/tuning_disjoint"
+  }
+}
