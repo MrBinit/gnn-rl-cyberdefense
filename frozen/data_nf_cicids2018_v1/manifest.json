@@ -1,7 +1,7 @@
 {
   "tag": "nf_cicids2018_v1",
   "kind": "data",
-  "created_utc": "2026-11-23T17:27:33+00:00",
+  "created_utc": "2026-11-24T06:15:10+00:00",
   "raw_csv": {
     "path": "data/raw/nf/NF-CICIDS2018-v3.csv",
     "sha256": "242a6971cc801eae621b1fc4d966db2cd0af9cc866805f36a6fc5d0058dfbb74"
@@ -196,7 +196,7 @@
     "torch": "2.15.0"
   },
   "git": {
-    "commit": "338ab84944c4c0e73137d75e9ec0fb654dc75840",
+    "commit": "0834c50a4832aeb00d892ded1ee80d438bc25d54",
     "uncommitted_changes": true
   },
   "files": {
