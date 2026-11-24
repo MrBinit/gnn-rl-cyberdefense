@@ -1,12 +1,12 @@
-"""Validate the ToN-IoT copy and the prepared splits (run scripts/prepare_data.py first).
+"""Validate the NetFlow copy, the preparation and every split set (after prepare_data).
 
 Usage::
 
     uv run python scripts/validate_data.py
-    uv run python scripts/validate_data.py --validation.official_csv path/to/Train_Test_Network.csv
+    uv run python scripts/validate_data.py --validation.official_csv path/to/other_copy.csv
 
-The official file comes from the UNSW ToN-IoT page (Train_Test_datasets folder);
-it needs a manual download. Exits with status 1 if a hard check fails.
+Provenance: the raw class counts are compared with the published NF-CICIDS2018-v3 file
+(UQ NetFlow v3, docs/08). Exits with status 1 if a hard check fails.
 
 Output: results/validation/report.json
 """
@@ -28,7 +28,7 @@ def main() -> int:
 
     reported = report["reported_official_comparison"]
     log.info(
-        "provenance: %s rows vs %s reported for the official file -> %s",
+        "provenance: %s raw rows vs %s in the published file -> %s",
         f"{reported['this_copy_rows']:,}",
         f"{reported['reported_official_rows']:,}",
         reported["verdict"],
@@ -48,16 +48,37 @@ def main() -> int:
     else:
         log.info("official file not supplied; pass --validation.official_csv to compare rows")
 
-    splits = report["prepared_splits"]
-    log.info("splits: %s", splits["rows"])
-    log.info("row overlap between splits: %s", splits["row_overlap_between_splits"])
-    log.info("feature-group overlap: %s", splits["feature_group_overlap_between_splits"])
-    log.info("max class-share deviation: %.4f", splits["max_class_share_deviation"])
+    prep = report["preparation"]
     log.info(
-        "test attack flows from hosts already seen attacking in train: %.1f%% "
-        "(why the unseen_host protocol is needed)",
-        splits["test_attack_flows_from_hosts_seen_attacking_in_train"] * 100,
+        "preparation: reproducible=%s, %s features, forbidden=%s, non-finite=%s, "
+        "noisy-flag mismatches=%s",
+        prep["reproducible_from_raw"],
+        prep["n_features"],
+        prep["forbidden_feature_columns"],
+        prep["non_finite_feature_values"],
+        prep["noisy_flag_mismatches"],
     )
+    log.info(
+        "windows: %s kept (%s with clean attacks); incomplete normal traffic in %s; "
+        "cells off the attack cap: %s; rows not matching complete traffic: %s",
+        prep["windows_kept"],
+        prep["windows_with_clean_attacks"],
+        prep["windows_with_incomplete_normal_traffic"],
+        prep["window_type_cells_off_attack_cap"],
+        prep["rows_not_matching_complete_traffic"],
+    )
+    prepared = report["prepared_splits"]
+    log.info("exact duplicates: %s", prepared["exact_duplicate_rows_after_cleaning"])
+    for name, s in prepared["split_sets"].items():
+        log.info(
+            "%-24s rows=%s excluded=%s test attacks=%s; seen attackers %.0f%%; masked rows=%s",
+            name,
+            s["rows"],
+            s["excluded_rows"],
+            s["test_attack_types"],
+            s["test_attack_flows_from_hosts_seen_attacking_in_train"] * 100,
+            s["masked_host_rows_in_train_val"],
+        )
     if report["passed"]:
         log.info("PASSED. Report: %s/report.json", cfg.validation.out_dir)
         return 0

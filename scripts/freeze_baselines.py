@@ -1,8 +1,9 @@
-"""Freeze the final baselines into frozen/baselines_<tag>/ (tracked in git).
+"""Freeze one split set's final baselines into frozen/baselines_<tag>/<split_set>/ (in git).
 
 Run after validation, the final (multi-seed) baseline runs and tuning. Usage::
 
-    uv run python scripts/freeze_baselines.py
+    uv run python scripts/freeze_baselines.py                    # split set: random
+    uv run python scripts/freeze_baselines.py --dataset.split_set bot_unseen_hosts
     uv run python scripts/freeze_baselines.py --freeze.tag v2
     uv run python scripts/freeze_baselines.py --freeze.overwrite
 

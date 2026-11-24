@@ -31,7 +31,7 @@ from cyberdefense.data.protocols import (
     pair_holdouts,
     target_mask,
 )
-from cyberdefense.data.ton_iot import NORMAL_CLASS, SPLITS, TARGET_BINARY, TARGET_MULTI
+from cyberdefense.data.schema import NORMAL_CLASS, SPLITS, TARGET_BINARY, TARGET_MULTI
 from cyberdefense.metrics import (
     binary_metrics,
     confusion,
@@ -51,7 +51,7 @@ log = logging.getLogger(__name__)
 def experiment_name(cfg: ExperimentConfig) -> str:
     """Untuned and each tuning variant get their own result and TensorBoard folders.
 
-    results/tuning -> baselines_tuned; results/tuning_disjoint -> baselines_tuned_disjoint.
+    tuning -> baselines_tuned; tuning_disjoint -> baselines_tuned_disjoint.
     """
     if not cfg.baseline.use_tuned:
         return "baselines"
@@ -165,7 +165,7 @@ def run_one(
         imbalance=spec.imbalance,
         seed=spec.seed,
         cfg=cfg.baseline,
-        data_cfg=cfg.ton_iot,
+        data_cfg=cfg.dataset,
         train=train,
         y_train=y["train"],
         val=val,
@@ -229,7 +229,7 @@ def run_one(
     (run_dir / f"{spec.run_name}.json").write_text(json.dumps(result, indent=2))
 
     writer = make_writer(
-        cfg.paths.tb_dir,
+        cfg.run_tb_dir,
         experiment_name(cfg),
         spec.run_name,
         cfg.baseline.model_dump_json(indent=2),
@@ -328,7 +328,7 @@ def run_all(cfg: ExperimentConfig, data: dict[str, pd.DataFrame]) -> pd.DataFram
         if "unseen_attack_host" in cfg.baseline.protocols
         else []
     )
-    out_dir = cfg.paths.results_dir / experiment_name(cfg)
+    out_dir = cfg.run_dir / experiment_name(cfg)
 
     results = []
     specs = iter_specs(cfg, attack_types, hosts, attack_host)

@@ -16,9 +16,9 @@ from xgboost import XGBClassifier
 from cyberdefense.config import (
     BaselineConfig,
     BaselineModel,
+    DatasetConfig,
     ImbalanceStrategy,
     Task,
-    TonIoTConfig,
 )
 from cyberdefense.data.preprocess import make_preprocessor
 
@@ -100,7 +100,7 @@ def fit_baseline(
     imbalance: ImbalanceStrategy,
     seed: int,
     cfg: BaselineConfig,
-    data_cfg: TonIoTConfig,
+    data_cfg: DatasetConfig,
     train: pd.DataFrame,
     y_train: np.ndarray,
     val: pd.DataFrame,

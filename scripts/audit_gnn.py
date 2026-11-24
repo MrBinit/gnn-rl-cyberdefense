@@ -3,10 +3,10 @@
 No model results are needed and it takes a few minutes on CPU (two tiny trainings
 check that test labels cannot influence training). Usage::
 
-    uv run python scripts/audit_gnn.py --paths.results_dir results/phase2
+    uv run python scripts/audit_gnn.py --dataset.split_set random
 
 Covers random, every unseen_attack type, every unseen_host host, every unseen_pair fold
-and every feasible unseen_attack_host split (Phase 3). Writes <results_dir>/audit/
+and every feasible unseen_attack_host split (Phase 3). Writes results/<split_set>/audit/
 report.json, exposure.csv and attack_host_feasibility.csv; exits 1 if a check fails.
 """
 
@@ -23,7 +23,7 @@ from cyberdefense.data.protocols import (
     attacker_hosts,
     pair_holdouts,
 )
-from cyberdefense.data.ton_iot import NORMAL_CLASS, SPLITS, TARGET_MULTI, load_split
+from cyberdefense.data.schema import NORMAL_CLASS, SPLITS, TARGET_MULTI, load_split
 from cyberdefense.freeze import verify_splits
 from cyberdefense.gnn.audit import audit_graph, training_ignores_test_labels
 from cyberdefense.gnn.experiment import graph_for
@@ -36,7 +36,7 @@ def main() -> int:
     setup_logging()
     cfg = ExperimentConfig(_cli_parse_args=True)
     verify_splits(cfg, cfg.graph.manifest)
-    splits = {s: load_split(cfg.ton_iot, s) for s in SPLITS}
+    splits = {s: load_split(cfg.dataset, s) for s in SPLITS}
     classes = sorted(splits["train"][TARGET_MULTI].astype(str).unique())
     graphs = [("random", None)]
     graphs += [("unseen_attack", c) for c in classes if c != NORMAL_CLASS]
@@ -72,7 +72,7 @@ def main() -> int:
             if not invariance["passed"]:
                 failures.append("training_ignores_test_labels")
 
-    out = cfg.paths.results_dir / "audit"
+    out = cfg.run_dir / "audit"
     out.mkdir(parents=True, exist_ok=True)
     report["failures"] = failures
     (out / "report.json").write_text(json.dumps(report, indent=2))

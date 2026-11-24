@@ -13,7 +13,7 @@ from sklearn.model_selection import TunedThresholdClassifierCV
 from cyberdefense.config import ExperimentConfig, GNNConfig, GraphConfig
 from cyberdefense.data.pipeline import build_dataset
 from cyberdefense.data.protocols import attacker_hosts
-from cyberdefense.data.ton_iot import SPLITS, load_split
+from cyberdefense.data.schema import SPLITS, load_split
 from cyberdefense.gnn.experiment import experiment_name, graph_for, run_all
 from cyberdefense.gnn.models import EdgeClassifier, node_inputs, structure
 from cyberdefense.gnn.train import class_weights, predict_proba, prepare_inputs
@@ -33,10 +33,10 @@ SMALL = {
 @pytest.fixture
 def splits(tmp_cfg: ExperimentConfig) -> dict[str, pd.DataFrame]:
     cfg = tmp_cfg.model_copy(
-        update={"ton_iot": tmp_cfg.ton_iot.model_copy(update={"make_figures": False})}
+        update={"dataset": tmp_cfg.dataset.model_copy(update={"make_figures": False})}
     )
     build_dataset(cfg)
-    return {name: load_split(cfg.ton_iot, name) for name in SPLITS}
+    return {name: load_split(cfg.dataset, name) for name in SPLITS}
 
 
 def small_cfg(cfg: ExperimentConfig, **gnn) -> ExperimentConfig:
@@ -116,7 +116,7 @@ def test_run_all_every_model_and_protocol(tmp_cfg: ExperimentConfig, splits: dic
     # random x {binary, multiclass} + mitm + host, for 4 models, 1 seed.
     assert len(summary) == 4 * 4
     assert set(summary["model"]) == {"mlp", "gcn", "sage", "gat"}
-    out = cfg.paths.results_dir / "gnn"
+    out = cfg.run_dir / "gnn"
     assert (out / "summary.csv").exists()
     assert (out / "summary_aggregated.csv").exists()
     for col in ("test_recall_at_fpr0p25", "test_holdout_recall_at_fpr1", "test_holdout_roc_auc"):
@@ -144,13 +144,11 @@ def test_run_all_every_model_and_protocol(tmp_cfg: ExperimentConfig, splits: dic
     )
 
     # Mixed with a "baseline" summary, the headline table has one row per model.
-    (cfg.paths.results_dir / "baselines").mkdir()
+    (cfg.run_dir / "baselines").mkdir()
     summary.assign(model="random_forest").to_csv(
-        cfg.paths.results_dir / "baselines" / "summary.csv", index=False
+        cfg.run_dir / "baselines" / "summary.csv", index=False
     )
-    mixed = load_summaries(
-        [cfg.paths.results_dir / "baselines" / "summary.csv", out / "summary.csv"]
-    )
+    mixed = load_summaries([cfg.run_dir / "baselines" / "summary.csv", out / "summary.csv"])
     table = headline_table(mixed, ["xss"])
     assert set(table.index) == {"random_forest", "mlp", "gcn", "sage", "gat"}
     assert "unseen attack mean recall@0.25%FPR" in table.columns

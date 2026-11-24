@@ -30,7 +30,7 @@ from torch_geometric.data import Data
 from cyberdefense.config import ExperimentConfig, GNNConfig
 from cyberdefense.data.preprocess import make_preprocessor
 from cyberdefense.data.protocols import holdout_hosts, holdout_mask, target_mask
-from cyberdefense.data.ton_iot import SPLIT_COL, SPLITS
+from cyberdefense.data.schema import SPLIT_COL, SPLITS
 from cyberdefense.gnn.models import EdgeClassifier
 from cyberdefense.gnn.shortcut import host_prior_proba
 from cyberdefense.gnn.train import fit, predict_proba, prepare_inputs
@@ -59,7 +59,7 @@ def audit_graph(data: Data, splits: dict[str, pd.DataFrame], cfg: ExperimentConf
     held = _held(data, df)
     checks = {f"validate_graph:{k}": v for k, v in validate_graph(data, splits)["checks"].items()}
 
-    pre = make_preprocessor(cfg.ton_iot)
+    pre = make_preprocessor(cfg.dataset)
     train_rows = (df[SPLIT_COL] == "train").to_numpy() & ~held
     pre.fit(df[train_rows])
     expected = torch.from_numpy(pre.transform(df).astype(np.float32))

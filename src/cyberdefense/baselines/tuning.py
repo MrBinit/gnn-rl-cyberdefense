@@ -37,7 +37,7 @@ from cyberdefense.config import (
     RandomForestConfig,
     XGBoostConfig,
 )
-from cyberdefense.data.ton_iot import NORMAL_CLASS, TARGET_BINARY, TARGET_MULTI
+from cyberdefense.data.schema import NORMAL_CLASS, TARGET_BINARY, TARGET_MULTI
 from cyberdefense.metrics import multiclass_metrics, per_class_report
 from cyberdefense.tracking import make_writer
 
@@ -140,7 +140,7 @@ def evaluate_params(
         "imbalance": "class_weight",  # its strength is tuned via class_weight_power
         "seed": cfg.seed,
         "cfg": bcfg,
-        "data_cfg": cfg.ton_iot,
+        "data_cfg": cfg.dataset,
     }
     train, val, classes = data.train, data.val, data.classes
     start = time.perf_counter()
@@ -221,7 +221,7 @@ def random_search_rf(cfg: ExperimentConfig, data: TuningData, out_dir: Path) -> 
         _clean(p)
         for p in ParameterSampler(RF_SPACE, n_iter=tcfg.rf_trials - 1, random_state=cfg.seed)
     ]
-    writer = make_writer(cfg.paths.tb_dir, "tuning", "random_forest", tcfg.model_dump_json())
+    writer = make_writer(cfg.run_tb_dir, "tuning", "random_forest", tcfg.model_dump_json())
     deadline = time.monotonic() + tcfg.timeout_minutes * 60 if tcfg.timeout_minutes else None
     rows, best = [], -np.inf
     for i, params in enumerate(candidates):
@@ -272,7 +272,7 @@ def optuna_search_xgb(cfg: ExperimentConfig, data: TuningData, out_dir: Path) ->
             len(study.trials),
             out_dir / "study.db",
         )
-    writer = make_writer(cfg.paths.tb_dir, "tuning", "xgboost", tcfg.model_dump_json())
+    writer = make_writer(cfg.run_tb_dir, "tuning", "xgboost", tcfg.model_dump_json())
 
     def objective(trial: optuna.Trial) -> float:
         params = suggest_xgb(trial)
@@ -384,7 +384,7 @@ def tune(cfg: ExperimentConfig, train: pd.DataFrame, val: pd.DataFrame) -> dict[
     data = prepare_tuning_data(cfg, train, val)
     out = {}
     for model_name in cfg.tuning.models:
-        out_dir = cfg.tuning.out_dir / model_name
+        out_dir = cfg.tuning_dir / model_name
         check_objective_unchanged(cfg, out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
         log.info(
@@ -407,7 +407,7 @@ def apply_tuned(cfg: ExperimentConfig) -> ExperimentConfig:
     """
     updates, tuned_holdouts = {}, set()
     for model_name in cfg.baseline.models:
-        path = cfg.tuning.out_dir / model_name / "best_params.json"
+        path = cfg.tuning_dir / model_name / "best_params.json"
         if not path.exists():
             raise FileNotFoundError(f"{path} not found; run scripts/tune_baselines.py first")
         saved = json.loads(path.read_text())

@@ -29,7 +29,7 @@ from cyberdefense.data.protocols import (
     pair_holdouts,
     target_mask,
 )
-from cyberdefense.data.ton_iot import NORMAL_CLASS, SPLITS, TARGET_BINARY, TARGET_MULTI
+from cyberdefense.data.schema import NORMAL_CLASS, SPLITS, TARGET_BINARY, TARGET_MULTI
 from cyberdefense.gnn.models import EdgeClassifier
 from cyberdefense.gnn.shortcut import host_prior_proba
 from cyberdefense.gnn.train import (
@@ -177,7 +177,7 @@ def run_one(
     idx = {name: getattr(data, f"{name}_mask").nonzero().squeeze(1).to(g.device) for name in SPLITS}
 
     writer = make_writer(
-        cfg.paths.tb_dir,
+        cfg.run_tb_dir,
         experiment_name(cfg),
         spec.run_name,
         json.dumps({"gnn": g.model_dump(mode="json"), "graph": cfg.graph.model_dump(mode="json")}),
@@ -384,7 +384,7 @@ def run_all(cfg: ExperimentConfig, splits: dict[str, pd.DataFrame]) -> pd.DataFr
         if "unseen_attack_host" in cfg.gnn.protocols
         else []
     )
-    out_dir = cfg.paths.results_dir / experiment_name(cfg)
+    out_dir = cfg.run_dir / experiment_name(cfg)
 
     graphs = iter_graphs(cfg, attack_types, hosts, attack_host)
     total = sum(len(iter_specs(cfg, p, h)) for p, h in graphs)

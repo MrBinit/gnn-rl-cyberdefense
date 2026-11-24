@@ -1,0 +1,472 @@
+{
+  "raw_csv": "data/raw/nf/NF-CICIDS2018-v3.csv",
+  "cleaning": {
+    "raw_rows": 20115529,
+    "excluded_day_rows": 828,
+    "duplicate_rows": 628756,
+    "deduplicated_rows": 19485945,
+    "clean_rows": 4470577,
+    "sampling": "windows",
+    "windows_total": 1358,
+    "windows_kept": 270,
+    "attack_windows_kept": 180,
+    "rows_per_class_before_sampling": {
+      "normal": 17391925,
+      "ddos_attack-hoic": 1032311,
+      "ddos_attacks-loic-http": 288589,
+      "ftp-bruteforce": 193360,
+      "infilteration": 115524,
+      "bot": 111460,
+      "dos_attacks-slowhttptest": 105550,
+      "dos_attacks-hulk": 100076,
+      "ssh-bruteforce": 94237,
+      "dos_attacks-goldeneye": 30650,
+      "dos_attacks-slowloris": 18020,
+      "ddos_attack-loic-udp": 1725,
+      "brute_force_-web": 1618,
+      "brute_force_-xss": 460,
+      "sql_injection": 440
+    },
+    "rows_per_class_after_sampling": {
+      "normal": 3911305,
+      "bot": 111460,
+      "ftp-bruteforce": 99160,
+      "ssh-bruteforce": 90932,
+      "ddos_attacks-loic-http": 71831,
+      "ddos_attack-hoic": 60000,
+      "dos_attacks-slowhttptest": 55460,
+      "dos_attacks-goldeneye": 26043,
+      "dos_attacks-slowloris": 18020,
+      "dos_attacks-hulk": 15000,
+      "infilteration": 9450,
+      "ddos_attack-loic-udp": 1725,
+      "brute_force_-web": 122,
+      "brute_force_-xss": 40,
+      "sql_injection": 29
+    },
+    "removed_features": {
+      "FTP_COMMAND_RET_CODE": "constant (cardinality 1)",
+      "LONGEST_FLOW_PKT": "identical to MAX_IP_PKT_LEN (Spearman r = 1.0)",
+      "RETRANSMITTED_IN_PKTS": "duplicates RETRANSMITTED_IN_BYTES (r = 0.998)",
+      "RETRANSMITTED_OUT_PKTS": "duplicates RETRANSMITTED_OUT_BYTES (r = 1.0)",
+      "ICMP_TYPE": "type*256+code; ICMP_IPV4_TYPE kept"
+    },
+    "never_feature_cols": [
+      "IPV4_SRC_ADDR",
+      "L4_SRC_PORT",
+      "IPV4_DST_ADDR",
+      "L4_DST_PORT",
+      "FLOW_START_MILLISECONDS",
+      "FLOW_END_MILLISECONDS",
+      "DNS_QUERY_ID",
+      "MIN_TTL",
+      "MAX_TTL"
+    ]
+  },
+  "reported_official_comparison": {
+    "per_class": {
+      "normal": {
+        "this_copy": 17514626,
+        "reported_official": 17514626
+      },
+      "ddos_attack-hoic": {
+        "this_copy": 1032311,
+        "reported_official": 1032311
+      },
+      "ftp-bruteforce": {
+        "this_copy": 386720,
+        "reported_official": 386720
+      },
+      "ddos_attacks-loic-http": {
+        "this_copy": 288589,
+        "reported_official": 288589
+      },
+      "bot": {
+        "this_copy": 207703,
+        "reported_official": 207703
+      },
+      "ssh-bruteforce": {
+        "this_copy": 188474,
+        "reported_official": 188474
+      },
+      "infilteration": {
+        "this_copy": 188152,
+        "reported_official": 188152
+      },
+      "dos_attacks-slowhttptest": {
+        "this_copy": 105550,
+        "reported_official": 105550
+      },
+      "dos_attacks-hulk": {
+        "this_copy": 100076,
+        "reported_official": 100076
+      },
+      "dos_attacks-goldeneye": {
+        "this_copy": 61300,
+        "reported_official": 61300
+      },
+      "dos_attacks-slowloris": {
+        "this_copy": 36040,
+        "reported_official": 36040
+      },
+      "ddos_attack-loic-udp": {
+        "this_copy": 3450,
+        "reported_official": 3450
+      },
+      "brute_force_-web": {
+        "this_copy": 1618,
+        "reported_official": 1618
+      },
+      "brute_force_-xss": {
+        "this_copy": 480,
+        "reported_official": 480
+      },
+      "sql_injection": {
+        "this_copy": 440,
+        "reported_official": 440
+      }
+    },
+    "this_copy_rows": 20115529,
+    "reported_official_rows": 20115529,
+    "differing_classes": [],
+    "attack_counts_match": true,
+    "verdict": "matches the published NF-CICIDS2018-v3 counts"
+  },
+  "preparation": {
+    "reproducible_from_raw": true,
+    "forbidden_feature_columns": [],
+    "removed_columns_present": [],
+    "identifier_columns_present": true,
+    "n_features": 39,
+    "non_finite_feature_values": 0,
+    "noisy_flag_mismatches": 0,
+    "window_id_mismatches": 0,
+    "windows_kept": 270,
+    "windows_with_clean_attacks": 180,
+    "windows_with_incomplete_normal_traffic": 0,
+    "window_type_cells_off_attack_cap": 0,
+    "max_attack_flows_per_window_type": 5000,
+    "rows_not_matching_complete_traffic": 0
+  },
+  "prepared_splits": {
+    "rows": 4470577,
+    "exact_duplicate_rows_after_cleaning": 0,
+    "noisy_label_rows": 9641,
+    "split_sets": {
+      "random": {
+        "rows": {
+          "train": 3129367,
+          "val": 670642,
+          "test": 670568
+        },
+        "excluded_rows": 0,
+        "clean_attack_rows": {
+          "train": 384705,
+          "val": 82498,
+          "test": 82428
+        },
+        "test_attack_types": [
+          "bot",
+          "ddos_attack-hoic",
+          "ddos_attack-loic-udp",
+          "ddos_attacks-loic-http",
+          "dos_attacks-goldeneye",
+          "dos_attacks-hulk",
+          "dos_attacks-slowhttptest",
+          "dos_attacks-slowloris",
+          "ftp-bruteforce",
+          "ssh-bruteforce"
+        ],
+        "test_attack_types_also_in_train": [
+          "bot",
+          "ddos_attack-hoic",
+          "ddos_attack-loic-udp",
+          "ddos_attacks-loic-http",
+          "dos_attacks-goldeneye",
+          "dos_attacks-hulk",
+          "dos_attacks-slowhttptest",
+          "dos_attacks-slowloris",
+          "ftp-bruteforce",
+          "ssh-bruteforce"
+        ],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "max_class_share_deviation": 7.493685268934736e-05,
+        "test_rows_with_feature_vector_in_train": 0.32328414120566445,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 0.999773477830633,
+        "masked_hosts": 0,
+        "masked_host_rows_in_train_val": 0
+      },
+      "lodo_2018-02-14": {
+        "rows": {
+          "train": 3251217,
+          "val": 414774,
+          "test": 804586
+        },
+        "excluded_rows": 0,
+        "clean_attack_rows": {
+          "train": 315476,
+          "val": 44063,
+          "test": 190092
+        },
+        "test_attack_types": [
+          "ftp-bruteforce",
+          "ssh-bruteforce"
+        ],
+        "test_attack_types_also_in_train": [],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 37333,
+          "train&test": 51833,
+          "val&test": 21581
+        },
+        "max_class_share_deviation": 0.11116000571756646,
+        "test_rows_with_feature_vector_in_train": 0.5381115256790449,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 0.0,
+        "masked_hosts": 0,
+        "masked_host_rows_in_train_val": 0
+      },
+      "lodo_2018-02-15": {
+        "rows": {
+          "train": 3686586,
+          "val": 369217,
+          "test": 414774
+        },
+        "excluded_rows": 0,
+        "clean_attack_rows": {
+          "train": 435108,
+          "val": 70460,
+          "test": 44063
+        },
+        "test_attack_types": [
+          "dos_attacks-goldeneye",
+          "dos_attacks-slowloris"
+        ],
+        "test_attack_types_also_in_train": [],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 31538,
+          "train&test": 36967,
+          "val&test": 18107
+        },
+        "max_class_share_deviation": 0.1378042107463597,
+        "test_rows_with_feature_vector_in_train": 0.4922295032957707,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 0.0,
+        "masked_hosts": 0,
+        "masked_host_rows_in_train_val": 0
+      },
+      "lodo_2018-02-16": {
+        "rows": {
+          "train": 3696733,
+          "val": 404627,
+          "test": 369217
+        },
+        "excluded_rows": 0,
+        "clean_attack_rows": {
+          "train": 407340,
+          "val": 71831,
+          "test": 70460
+        },
+        "test_attack_types": [
+          "dos_attacks-hulk",
+          "dos_attacks-slowhttptest"
+        ],
+        "test_attack_types_also_in_train": [],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 36119,
+          "train&test": 33611,
+          "val&test": 13830
+        },
+        "max_class_share_deviation": 0.16145649032494788,
+        "test_rows_with_feature_vector_in_train": 0.577178190603358,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 0.0,
+        "masked_hosts": 0,
+        "masked_host_rows_in_train_val": 0
+      },
+      "lodo_2018-02-20": {
+        "rows": {
+          "train": 3569440,
+          "val": 496510,
+          "test": 404627
+        },
+        "excluded_rows": 0,
+        "clean_attack_rows": {
+          "train": 416075,
+          "val": 61725,
+          "test": 71831
+        },
+        "test_attack_types": [
+          "ddos_attacks-loic-http"
+        ],
+        "test_attack_types_also_in_train": [],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 43600,
+          "train&test": 35019,
+          "val&test": 18851
+        },
+        "max_class_share_deviation": 0.16145649032494788,
+        "test_rows_with_feature_vector_in_train": 0.42465282840739743,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 0.095488020492545,
+        "masked_hosts": 0,
+        "masked_host_rows_in_train_val": 0
+      },
+      "lodo_2018-02-21": {
+        "rows": {
+          "train": 2636867,
+          "val": 1337200,
+          "test": 496510
+        },
+        "excluded_rows": 0,
+        "clean_attack_rows": {
+          "train": 376446,
+          "val": 111460,
+          "test": 61725
+        },
+        "test_attack_types": [
+          "ddos_attack-hoic",
+          "ddos_attack-loic-udp"
+        ],
+        "test_attack_types_also_in_train": [],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 62797,
+          "train&test": 40908,
+          "val&test": 27642
+        },
+        "max_class_share_deviation": 0.1074224011821624,
+        "test_rows_with_feature_vector_in_train": 0.4464119554490343,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 1.0,
+        "masked_hosts": 0,
+        "masked_host_rows_in_train_val": 0
+      },
+      "lodo_2018-03-02": {
+        "rows": {
+          "train": 2328791,
+          "val": 804586,
+          "test": 1337200
+        },
+        "excluded_rows": 0,
+        "clean_attack_rows": {
+          "train": 248079,
+          "val": 190092,
+          "test": 111460
+        },
+        "test_attack_types": [
+          "bot"
+        ],
+        "test_attack_types_also_in_train": [],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 48365,
+          "train&test": 61414,
+          "val&test": 31919
+        },
+        "max_class_share_deviation": 0.11116000571756646,
+        "test_rows_with_feature_vector_in_train": 0.41789410708944064,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 0.5964471559303786,
+        "masked_hosts": 0,
+        "masked_host_rows_in_train_val": 0
+      },
+      "bot": {
+        "rows": {
+          "train": 2610824,
+          "val": 496510,
+          "test": 1337200
+        },
+        "excluded_rows": 26043,
+        "clean_attack_rows": {
+          "train": 350403,
+          "val": 61725,
+          "test": 111460
+        },
+        "test_attack_types": [
+          "bot"
+        ],
+        "test_attack_types_also_in_train": [],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 40908,
+          "train&test": 62797,
+          "val&test": 27642
+        },
+        "max_class_share_deviation": 0.1074224011821624,
+        "test_rows_with_feature_vector_in_train": 0.41951390966198027,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 0.5964471559303786,
+        "masked_hosts": 1,
+        "masked_host_rows_in_train_val": 0
+      },
+      "bot_unseen_hosts": {
+        "rows": {
+          "train": 2564102,
+          "val": 462789,
+          "test": 1337200
+        },
+        "excluded_rows": 106486,
+        "clean_attack_rows": {
+          "train": 350403,
+          "val": 61725,
+          "test": 111460
+        },
+        "test_attack_types": [
+          "bot"
+        ],
+        "test_attack_types_also_in_train": [],
+        "row_overlap_between_splits": {
+          "train&val": 0,
+          "train&test": 0,
+          "val&test": 0
+        },
+        "feature_group_overlap_between_splits": {
+          "train&val": 38256,
+          "train&test": 62246,
+          "val&test": 26281
+        },
+        "max_class_share_deviation": 0.11622763044093737,
+        "test_rows_with_feature_vector_in_train": 0.41890667065510023,
+        "test_attack_flows_from_hosts_seen_attacking_in_train": 0.0,
+        "masked_hosts": 9,
+        "masked_host_rows_in_train_val": 0
+      }
+    }
+  },
+  "hard_failures": [],
+  "passed": true
+}

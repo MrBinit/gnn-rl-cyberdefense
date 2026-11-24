@@ -13,7 +13,7 @@ from cyberdefense.config import (
     XGBoostConfig,
 )
 from cyberdefense.data.pipeline import build_dataset
-from cyberdefense.data.ton_iot import SPLITS, load_split
+from cyberdefense.data.schema import SPLITS, load_split
 from cyberdefense.reporting import aggregate
 
 SMALL_MODELS = {
@@ -28,7 +28,7 @@ def small_cfg(tmp_cfg: ExperimentConfig) -> ExperimentConfig:
     cfg = tmp_cfg.model_copy(
         update={
             "baseline": BaselineConfig(**SMALL_MODELS),
-            "ton_iot": tmp_cfg.ton_iot.model_copy(update={"make_figures": False}),
+            "dataset": tmp_cfg.dataset.model_copy(update={"make_figures": False}),
         }
     )
     build_dataset(cfg)
@@ -37,7 +37,7 @@ def small_cfg(tmp_cfg: ExperimentConfig) -> ExperimentConfig:
 
 @pytest.fixture
 def splits(small_cfg: ExperimentConfig) -> dict[str, pd.DataFrame]:
-    return {name: load_split(small_cfg.ton_iot, name) for name in SPLITS}
+    return {name: load_split(small_cfg.dataset, name) for name in SPLITS}
 
 
 def test_iter_specs_grid() -> None:
@@ -69,7 +69,7 @@ def test_resampling_balances_train_only(
         imbalance=strategy,
         seed=0,
         cfg=small_cfg.baseline,
-        data_cfg=small_cfg.ton_iot,
+        data_cfg=small_cfg.dataset,
         train=splits["train"],
         y_train=y_train,
         val=splits["val"],
@@ -90,7 +90,7 @@ def test_threshold_tuned_for_binary_only(
         "imbalance": "class_weight",
         "seed": 0,
         "cfg": small_cfg.baseline,
-        "data_cfg": small_cfg.ton_iot,
+        "data_cfg": small_cfg.dataset,
         "train": splits["train"],
         "val": splits["val"],
     }
@@ -124,7 +124,7 @@ def test_run_all_grid(small_cfg: ExperimentConfig, splits: dict[str, pd.DataFram
     assert binary["test_pr_auc"].notna().all()
     assert binary["threshold"].notna().all()
 
-    out = small_cfg.paths.results_dir / "baselines"
+    out = small_cfg.run_dir / "baselines"
     assert (out / "summary.csv").exists()
     assert (out / "summary_aggregated.csv").exists()
     assert len(list(out.rglob("*.json"))) == len(summary)

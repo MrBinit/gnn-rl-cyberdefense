@@ -23,7 +23,7 @@ from cyberdefense.config import (
     XGBoostConfig,
 )
 from cyberdefense.data.pipeline import build_dataset
-from cyberdefense.data.ton_iot import load_split
+from cyberdefense.data.schema import load_split
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def tune_cfg(tmp_cfg: ExperimentConfig) -> ExperimentConfig:
                 holdouts=["mitm", "ddos"],
                 out_dir=tmp_cfg.paths.results_dir / "tuning",
             ),
-            "ton_iot": tmp_cfg.ton_iot.model_copy(update={"make_figures": False}),
+            "dataset": tmp_cfg.dataset.model_copy(update={"make_figures": False}),
         }
     )
     build_dataset(cfg)
@@ -49,7 +49,7 @@ def tune_cfg(tmp_cfg: ExperimentConfig) -> ExperimentConfig:
 
 @pytest.fixture
 def train_val(tune_cfg: ExperimentConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
-    return load_split(tune_cfg.ton_iot, "train"), load_split(tune_cfg.ton_iot, "val")
+    return load_split(tune_cfg.dataset, "train"), load_split(tune_cfg.dataset, "val")
 
 
 def test_objective_value() -> None:
@@ -97,7 +97,7 @@ def test_class_weight_power_zero_equals_unweighted(tune_cfg: ExperimentConfig, t
             imbalance=imbalance,
             seed=0,
             cfg=tune_cfg.baseline.model_copy(update={"random_forest": rf}),
-            data_cfg=tune_cfg.ton_iot,
+            data_cfg=tune_cfg.dataset,
             train=train,
             y_train=y_train,
             val=val,

@@ -16,7 +16,7 @@ from cyberdefense.data.protocols import (
     holdout_mask,
     target_mask,
 )
-from cyberdefense.data.ton_iot import SPLITS, load_split
+from cyberdefense.data.schema import SPLITS, load_split
 from cyberdefense.gnn.audit import audit_graph
 from cyberdefense.gnn.experiment import graph_for
 from cyberdefense.gnn.experiment import run_all as run_gnns
@@ -30,12 +30,12 @@ MITM_HOSTS = ["172.16.0.1", "172.16.0.2"]
 def splits(tmp_cfg: ExperimentConfig) -> dict[str, pd.DataFrame]:
     """Synthetic splits where mitm comes only from two dedicated hosts (as in ToN-IoT)."""
     cfg = tmp_cfg.model_copy(
-        update={"ton_iot": tmp_cfg.ton_iot.model_copy(update={"make_figures": False})}
+        update={"dataset": tmp_cfg.dataset.model_copy(update={"make_figures": False})}
     )
     build_dataset(cfg)
     out = {}
     for name in SPLITS:
-        df = load_split(cfg.ton_iot, name).copy()
+        df = load_split(cfg.dataset, name).copy()
         mitm = (df["attack_type"] == "mitm").to_numpy()
         df.loc[mitm, "src_ip"] = np.resize(MITM_HOSTS, int(mitm.sum()))
         out[name] = df

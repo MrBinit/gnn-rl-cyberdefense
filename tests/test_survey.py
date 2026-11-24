@@ -8,7 +8,7 @@ from cyberdefense.data.survey import (
     from_cic_ids2017,
     from_lanl,
     from_netflow_v3,
-    from_ton_iot,
+    from_prepared,
     from_unsw_nb15,
     headline,
     survey,
@@ -124,15 +124,16 @@ def test_lanl_adapter_marks_red_team_events() -> None:
     assert set(df.columns) >= {"user", "timestamp"}
 
 
-def test_ton_iot_adapter(tmp_cfg) -> None:
+def test_prepared_adapter(tmp_cfg) -> None:
     from cyberdefense.data.pipeline import build_dataset
-    from cyberdefense.data.ton_iot import SPLITS, load_split
+    from cyberdefense.data.schema import SPLITS, load_split
 
     cfg = tmp_cfg.model_copy(
-        update={"ton_iot": tmp_cfg.ton_iot.model_copy(update={"make_figures": False})}
+        update={"dataset": tmp_cfg.dataset.model_copy(update={"make_figures": False})}
     )
     build_dataset(cfg)
-    df = from_ton_iot(pd.concat([load_split(cfg.ton_iot, s) for s in SPLITS]))
+    df = from_prepared(pd.concat([load_split(cfg.dataset, s) for s in SPLITS]))
     s = survey(df, min_attack_flows_host=1)
     assert s["flows"] == len(df)
-    assert not s["has_timestamps"]
+    assert s["has_timestamps"]
+    assert "protocol" in s["entity_types"]

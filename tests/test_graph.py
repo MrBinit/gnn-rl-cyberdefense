@@ -7,7 +7,7 @@ import torch
 
 from cyberdefense.config import ExperimentConfig, GraphConfig
 from cyberdefense.data.pipeline import build_dataset
-from cyberdefense.data.ton_iot import SPLITS, load_split
+from cyberdefense.data.schema import SPLITS, load_split
 from cyberdefense.graph.build import build_graph, load_graph, message_passing_graph, save_graph
 from cyberdefense.graph.validation import describe_graph, validate_graph, write_figures
 
@@ -15,10 +15,10 @@ from cyberdefense.graph.validation import describe_graph, validate_graph, write_
 @pytest.fixture
 def splits(tmp_cfg: ExperimentConfig) -> dict[str, pd.DataFrame]:
     cfg = tmp_cfg.model_copy(
-        update={"ton_iot": tmp_cfg.ton_iot.model_copy(update={"make_figures": False})}
+        update={"dataset": tmp_cfg.dataset.model_copy(update={"make_figures": False})}
     )
     build_dataset(cfg)
-    return {name: load_split(cfg.ton_iot, name) for name in SPLITS}
+    return {name: load_split(cfg.dataset, name) for name in SPLITS}
 
 
 def with_graph(cfg: ExperimentConfig, **kwargs) -> ExperimentConfig:

@@ -6,12 +6,12 @@ Usage::
     uv run python scripts/build_graph.py --graph.node_features degree
     uv run python scripts/build_graph.py --graph.protocol unseen_host --graph.holdout 192.168.1.30
 
-Checks the splits against the frozen baseline manifest first (verify_splits).
+Checks the split set against the frozen data manifest first (verify_splits).
 Exits with status 1 if a hard check fails.
 
 Output:
-- data/processed/graph/<protocol>[__<holdout>].pt   (torch_geometric Data)
-- results/graph/<same name>/report.json, host_graph.png, degree_distributions.png
+- data/processed/graph/<split_set>/<protocol>[__<holdout>].pt   (torch_geometric Data)
+- results/<split_set>/graph/<same name>/report.json, host_graph.png, degree_distributions.png
 """
 
 import logging
@@ -19,7 +19,7 @@ import sys
 
 from cyberdefense.config import ExperimentConfig
 from cyberdefense.data.protocols import attacker_hosts
-from cyberdefense.data.ton_iot import NORMAL_CLASS, SPLITS, TARGET_MULTI, load_split
+from cyberdefense.data.schema import NORMAL_CLASS, SPLITS, TARGET_MULTI, load_split
 from cyberdefense.freeze import verify_splits
 from cyberdefense.graph.build import build_graph, save_graph
 from cyberdefense.graph.validation import (
@@ -39,7 +39,7 @@ def main() -> int:
     g = cfg.graph
     verify_splits(cfg, g.manifest)
     log.info("splits match the frozen manifest %s", g.manifest)
-    splits = {s: load_split(cfg.ton_iot, s) for s in SPLITS}
+    splits = {s: load_split(cfg.dataset, s) for s in SPLITS}
 
     data = build_graph(splits, cfg)
     name = g.protocol + (f"__{g.holdout}" if g.holdout else "")
@@ -70,8 +70,8 @@ def main() -> int:
                 "ok" if result["passed"] else f"FAILED {result['hard_failures']}",
             )
 
-    save_graph(data, g.out_dir / f"{name}.pt")
-    out = g.report_dir / name
+    save_graph(data, cfg.graph_dir / f"{name}.pt")
+    out = cfg.graph_report_dir / name
     write_report(report, out / "report.json")
     if g.make_figures:
         write_figures(data, out)
@@ -109,7 +109,7 @@ def main() -> int:
         f", {len(report.get('holdout_validation', {}))} holdout graphs"
         if g.validate_holdouts
         else "",
-        g.out_dir,
+        cfg.graph_dir,
         name,
         out,
     )

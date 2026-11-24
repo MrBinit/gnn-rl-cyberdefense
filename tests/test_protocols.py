@@ -23,17 +23,17 @@ from cyberdefense.config import (
     XGBoostConfig,
 )
 from cyberdefense.data.pipeline import build_dataset
-from cyberdefense.data.ton_iot import SPLITS, load_split
+from cyberdefense.data.schema import SPLITS, load_split
 from cyberdefense.reporting import report_tables
 
 
 @pytest.fixture
 def splits(tmp_cfg: ExperimentConfig) -> dict[str, pd.DataFrame]:
     cfg = tmp_cfg.model_copy(
-        update={"ton_iot": tmp_cfg.ton_iot.model_copy(update={"make_figures": False})}
+        update={"dataset": tmp_cfg.dataset.model_copy(update={"make_figures": False})}
     )
     build_dataset(cfg)
-    return {name: load_split(cfg.ton_iot, name) for name in SPLITS}
+    return {name: load_split(cfg.dataset, name) for name in SPLITS}
 
 
 def test_holdout_mask_by_host_covers_both_directions() -> None:
@@ -116,7 +116,7 @@ def test_unseen_host_run(tmp_cfg: ExperimentConfig, splits: dict[str, pd.DataFra
         assert summary[col].between(0, 1).all(), col
     assert (summary["val_fpr_at_fpr1"] <= 0.01).all()  # chosen on val, so capped there
 
-    run_file = next((cfg.paths.results_dir / "baselines" / "unseen_host").rglob("*.json"))
+    run_file = next((cfg.run_dir / "baselines" / "unseen_host").rglob("*.json"))
     result = json.loads(run_file.read_text())
     held = holdout_mask(splits["train"], "unseen_host", result["holdout"])
     assert result["rows"]["train"] == len(splits["train"]) - int(held.sum())

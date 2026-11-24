@@ -10,14 +10,14 @@ wheels/
 .venv
 
 # data
-data/
-results/
+/data/
+/results/
 .pytest_cache/
 .ruff_cache/
 
 # Datasets: never commit raw or processed data, wherever it is placed
-data/
-datasets/
+/data/
+/datasets/
 *NFV3DATA*/
 NF-*.csv
 NetFlow_v3_Features.csv

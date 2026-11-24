@@ -1,6 +1,11 @@
-"""Freeze the final baselines: a reproducible snapshot later stages compare against.
+"""Frozen snapshots later stages must match.
 
-``freeze`` writes ``<freeze.out_dir>/baselines_<tag>/`` with:
+``freeze_data`` writes ``<freeze.out_dir>/data_<tag>/``: a manifest with the raw-data hash,
+the hashes of ``clean.parquet`` / ``splits.parquet``, a content fingerprint of every split of
+every split set, the config, environment and git commit, plus the dataset metadata and the
+(passed) validation report. ``verify_splits`` checks the configured split set against it.
+
+``freeze`` writes ``<freeze.out_dir>/baselines_<tag>/<split_set>/`` with:
 
 - ``manifest.json``: raw-data hash, split fingerprints, full config, environment,
   git commit, and a checksum for every copied file;
@@ -19,10 +24,11 @@ from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from cyberdefense.config import ExperimentConfig
-from cyberdefense.data.ton_iot import SPLITS, load_split
+from cyberdefense.data.schema import SPLIT_SETS_FILE, SPLITS, load_clean, load_split_sets
 
 PACKAGES = ("numpy", "pandas", "scikit-learn", "xgboost", "optuna", "imbalanced-learn", "torch")
 
@@ -35,17 +41,26 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def split_fingerprints(cfg: ExperimentConfig) -> dict[str, dict]:
-    """Content hash of each split (row order included), independent of parquet metadata."""
-    out = {}
-    for name in SPLITS:
-        df = load_split(cfg.ton_iot, name)
-        row_hashes = pd.util.hash_pandas_object(df, index=False).to_numpy()
-        out[name] = {
-            "rows": len(df),
-            "sha256": hashlib.sha256(row_hashes.tobytes()).hexdigest(),
+def _fingerprints(row_hashes: np.ndarray, split: np.ndarray) -> dict[str, dict]:
+    return {
+        name: {
+            "rows": int((split == name).sum()),
+            "sha256": hashlib.sha256(row_hashes[split == name].tobytes()).hexdigest(),
         }
-    return out
+        for name in SPLITS
+    }
+
+
+def all_split_fingerprints(cfg: ExperimentConfig) -> dict[str, dict[str, dict]]:
+    """Content hash of every split of every split set (row order included)."""
+    row_hashes = pd.util.hash_pandas_object(load_clean(cfg.dataset), index=False).to_numpy()
+    sets = load_split_sets(cfg.dataset)
+    return {name: _fingerprints(row_hashes, sets[name].astype(str).to_numpy()) for name in sets}
+
+
+def split_fingerprints(cfg: ExperimentConfig) -> dict[str, dict]:
+    """Fingerprints of the configured split set (``dataset.split_set``)."""
+    return all_split_fingerprints(cfg)[cfg.dataset.split_set]
 
 
 def environment() -> dict:
@@ -72,21 +87,69 @@ def git_state() -> dict:
     return {"commit": commit, "uncommitted_changes": bool(status) if status is not None else None}
 
 
-def _collect(cfg: ExperimentConfig) -> dict[str, Path]:
-    """Files to snapshot, keyed by their path inside the frozen folder."""
-    results = cfg.paths.results_dir
-    files = {"data_metadata.json": cfg.ton_iot.processed_dir / "metadata.json"}
-
+def _passed_validation(cfg: ExperimentConfig) -> Path:
     validation = cfg.validation.out_dir / "report.json"
     if not validation.exists():
         raise FileNotFoundError(f"{validation} missing; run scripts/validate_data.py first")
     if not json.loads(validation.read_text())["passed"]:
         raise ValueError(f"{validation} reports failed checks; fix them before freezing")
-    files["validation_report.json"] = validation
+    return validation
+
+
+def _prepare_dest(dest: Path, overwrite: bool) -> None:
+    if dest.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"{dest} exists; choose another --freeze.tag or --freeze.overwrite"
+            )
+        shutil.rmtree(dest)
+
+
+def freeze_data(cfg: ExperimentConfig) -> Path:
+    """Freeze the prepared data and every split set (after validate_data passed)."""
+    dest = cfg.freeze.out_dir / f"data_{cfg.freeze.tag}"
+    validation = _passed_validation(cfg)
+    _prepare_dest(dest, cfg.freeze.overwrite)
+    dest.mkdir(parents=True)
+    files = {
+        "data_metadata.json": cfg.dataset.processed_dir / "metadata.json",
+        "validation_report.json": validation,
+    }
+    for rel, src in files.items():
+        shutil.copy2(src, dest / rel)
+    processed = cfg.dataset.processed_dir
+    manifest = {
+        "tag": cfg.freeze.tag,
+        "kind": "data",
+        "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
+        "raw_csv": {"path": str(cfg.dataset.raw_csv), "sha256": file_sha256(cfg.dataset.raw_csv)},
+        "prepared_files": {
+            name: file_sha256(processed / name) for name in ("clean.parquet", SPLIT_SETS_FILE)
+        },
+        "split_sets": all_split_fingerprints(cfg),
+        "config": {
+            "dataset": json.loads(cfg.dataset.model_dump_json()),
+            "split": json.loads(cfg.split.model_dump_json()),
+        },
+        "environment": environment(),
+        "git": git_state(),
+        "files": {rel: file_sha256(dest / rel) for rel in files},
+    }
+    (dest / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    return dest
+
+
+def _collect(cfg: ExperimentConfig) -> dict[str, Path]:
+    """Files to snapshot, keyed by their path inside the frozen folder."""
+    results = cfg.run_dir
+    files = {"data_metadata.json": cfg.dataset.processed_dir / "metadata.json"}
+    files["validation_report.json"] = _passed_validation(cfg)
 
     baseline_dirs = sorted(p for p in results.glob("baselines*") if (p / "summary.csv").exists())
     if not any(p.name == "baselines" for p in baseline_dirs):
-        raise FileNotFoundError(f"{results}/baselines/summary.csv missing; run train_baselines")
+        raise FileNotFoundError(
+            f"{results}/baselines/summary.csv missing; run train_baselines for this split set"
+        )
     for d in baseline_dirs:
         for name in ("summary.csv", "summary_aggregated.csv"):
             if (d / name).exists():
@@ -100,14 +163,9 @@ def _collect(cfg: ExperimentConfig) -> dict[str, Path]:
 
 def freeze(cfg: ExperimentConfig) -> Path:
     """Write the snapshot; refuses to overwrite an existing tag unless configured to."""
-    dest = cfg.freeze.out_dir / f"baselines_{cfg.freeze.tag}"
-    if dest.exists():
-        if not cfg.freeze.overwrite:
-            raise FileExistsError(
-                f"{dest} exists; choose another --freeze.tag or --freeze.overwrite"
-            )
-        shutil.rmtree(dest)
+    dest = cfg.frozen_baselines_dir
     files = _collect(cfg)
+    _prepare_dest(dest, cfg.freeze.overwrite)
 
     for rel, src in files.items():
         target = dest / rel
@@ -122,7 +180,8 @@ def freeze(cfg: ExperimentConfig) -> Path:
     manifest = {
         "tag": cfg.freeze.tag,
         "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
-        "raw_csv": {"path": str(cfg.ton_iot.raw_csv), "sha256": file_sha256(cfg.ton_iot.raw_csv)},
+        "raw_csv": {"path": str(cfg.dataset.raw_csv), "sha256": file_sha256(cfg.dataset.raw_csv)},
+        "split_set": cfg.dataset.split_set,
         "splits": split_fingerprints(cfg),
         "seeds_per_experiment": seeds,
         "config": json.loads(cfg.model_dump_json()),
@@ -135,9 +194,24 @@ def freeze(cfg: ExperimentConfig) -> Path:
 
 
 def verify_splits(cfg: ExperimentConfig, manifest_path: Path) -> None:
-    """Raise if the current splits differ from the frozen ones."""
-    frozen = json.loads(manifest_path.read_text())["splits"]
+    """Raise if the configured split set differs from the frozen one.
+
+    Works with a data manifest (``split_sets``: every set) and a baseline manifest
+    (``splits`` of its ``split_set``).
+    """
+    manifest = json.loads(manifest_path.read_text())
+    name = cfg.dataset.split_set
+    if "split_sets" in manifest:
+        if name not in manifest["split_sets"]:
+            raise ValueError(f"split set {name!r} not frozen in {manifest_path}")
+        frozen = manifest["split_sets"][name]
+    else:
+        if manifest.get("split_set", "random") != name:
+            raise ValueError(f"{manifest_path} froze split set {manifest.get('split_set')!r}")
+        frozen = manifest["splits"]
     current = split_fingerprints(cfg)
     if current != frozen:
         changed = [s for s in SPLITS if current[s] != frozen.get(s)]
-        raise ValueError(f"splits differ from {manifest_path}: {changed}; rebuild or re-freeze")
+        raise ValueError(
+            f"split set {name!r} differs from {manifest_path}: {changed}; rebuild or re-freeze"
+        )

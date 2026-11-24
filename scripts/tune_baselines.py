@@ -4,7 +4,8 @@ Random Forest uses random search; XGBoost uses Optuna TPE with median pruning.
 Each search starts with the untuned default as trial 0 for reference.
 Usage::
 
-    uv run python scripts/tune_baselines.py
+    uv run python scripts/tune_baselines.py                      # split set: random
+    uv run python scripts/tune_baselines.py --dataset.split_set bot_unseen_hosts
     uv run python scripts/tune_baselines.py --tuning.models '["xgboost"]' --tuning.xgb_trials 60
     uv run python scripts/tune_baselines.py --tuning.train_fraction 0.5   # faster trials
 
@@ -12,11 +13,11 @@ Then evaluate the tuned models on test with the usual protocols::
 
     uv run python scripts/train_baselines.py --baseline.use_tuned
 
-Outputs (results/tuning/<model>/):
+Outputs (results/<split_set>/tuning_disjoint/<model>/):
     trials.csv        every trial: params, objective, macro-F1, per-holdout recall, FPR
     best_params.json  best params with their val scores next to the default's
     study.db          (xgboost) Optuna study; rerunning resumes it
-TensorBoard: results/tensorboard/tuning/
+TensorBoard: results/<split_set>/tensorboard/tuning/
 """
 
 import logging
@@ -25,7 +26,7 @@ import pandas as pd
 
 from cyberdefense.baselines.tuning import tune
 from cyberdefense.config import ExperimentConfig
-from cyberdefense.data.ton_iot import load_split
+from cyberdefense.data.schema import load_split
 from cyberdefense.utils import setup_logging
 
 log = logging.getLogger("tune_baselines")
@@ -35,7 +36,7 @@ SHOW = ["objective", "macro_f1", "unseen_recall", "fpr"]
 def main() -> None:
     setup_logging()
     cfg = ExperimentConfig(_cli_parse_args=True)
-    train, val = load_split(cfg.ton_iot, "train"), load_split(cfg.ton_iot, "val")
+    train, val = load_split(cfg.dataset, "train"), load_split(cfg.dataset, "val")
     results = tune(cfg, train, val)
 
     for model_name, best in results.items():

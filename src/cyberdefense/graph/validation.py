@@ -21,8 +21,7 @@ import torch
 from torch_geometric.data import Data
 
 from cyberdefense.data.protocols import holdout_hosts, holdout_mask
-from cyberdefense.data.ton_iot import (
-    NUMERIC_COLS,
+from cyberdefense.data.schema import (
     SPLIT_COL,
     SPLITS,
     TARGET_BINARY,
@@ -126,8 +125,12 @@ def validate_graph(data: Data, splits: dict[str, pd.DataFrame]) -> dict:
         if f == f"num__{c}" or f.startswith(f"cat__{c}_")
     ]
     _check(checks, "no_identifier_features", not id_feats, id_feats)
-    num = attr[masks["train"], : len(NUMERIC_COLS)]
-    worst_mean, worst_std = float(np.abs(num.mean(0)).max()), float(np.abs(num.std(0) - 1).max())
+    n_num = sum(name.startswith("num__") for name in data.edge_feature_names)
+    num = attr[masks["train"], :n_num].astype(np.float64)
+    std = num.std(0)
+    varying = std > 0  # a column constant in train is scaled to 0 and carries no information
+    worst_mean = float(np.abs(num.mean(0)).max()) if n_num else 0.0
+    worst_std = float(np.abs(std[varying] - 1).max()) if varying.any() else 0.0
     _check(
         checks,
         "preprocessor_fit_on_train_edges",
@@ -261,7 +264,7 @@ def write_figures(data: Data, out_dir: Path) -> list[Path]:
     )
     fig.colorbar(nodes, ax=ax, shrink=0.6, label="attack share of the host's flows")
     ax.set_title(
-        f"ToN-IoT host graph: {n} hosts, {ei.shape[1]:,} flows collapsed to "
+        f"Host graph: {n} hosts, {ei.shape[1]:,} flows collapsed to "
         f"{g.number_of_edges():,} host pairs\n"
         "node size = log(flows), edge width = log(flows between the pair); self-loops hidden"
     )

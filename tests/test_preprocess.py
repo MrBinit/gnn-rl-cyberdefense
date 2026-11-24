@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
 
-from cyberdefense.config import TonIoTConfig
+from cyberdefense.config import DatasetConfig
+from cyberdefense.data.netflow import clean, numeric_cols
 from cyberdefense.data.preprocess import fit_transform_splits
-from cyberdefense.data.ton_iot import NUMERIC_COLS, clean
 
-CFG = TonIoTConfig(min_category_freq=2)
+CFG = DatasetConfig(min_category_freq=2, normal_window_ratio=1e6, max_attack_flows_per_window=None)
 
 
 def _halves(raw_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -25,7 +25,7 @@ def test_output_is_finite_float32(raw_df: pd.DataFrame) -> None:
 def test_scaler_is_fitted_on_train_only(raw_df: pd.DataFrame) -> None:
     train, test = _halves(raw_df)
     _, (x_train, x_test) = fit_transform_splits(CFG, train, test)
-    n_num = len(NUMERIC_COLS)
+    n_num = len(numeric_cols(CFG))
     np.testing.assert_allclose(x_train[:, :n_num].mean(axis=0), 0, atol=1e-4)
     # Test statistics are not re-centred, which would leak test information.
     assert not np.allclose(x_test[:, :n_num].mean(axis=0), 0, atol=1e-4)
@@ -34,8 +34,8 @@ def test_scaler_is_fitted_on_train_only(raw_df: pd.DataFrame) -> None:
 def test_unseen_category_does_not_fail(raw_df: pd.DataFrame) -> None:
     train, test = _halves(raw_df)
     test = test.copy()
-    test["proto"] = test["proto"].cat.add_categories("never-seen")
-    test.loc[test.index[0], "proto"] = "never-seen"
+    test["PROTOCOL"] = test["PROTOCOL"].cat.add_categories("never-seen")
+    test.loc[test.index[0], "PROTOCOL"] = "never-seen"
     _, (x_train, x_test) = fit_transform_splits(CFG, train, test)
     assert x_test.shape[1] == x_train.shape[1]
 

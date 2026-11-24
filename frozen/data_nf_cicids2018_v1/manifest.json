@@ -1,0 +1,206 @@
+{
+  "tag": "nf_cicids2018_v1",
+  "kind": "data",
+  "created_utc": "2026-11-23T17:27:33+00:00",
+  "raw_csv": {
+    "path": "data/raw/nf/NF-CICIDS2018-v3.csv",
+    "sha256": "242a6971cc801eae621b1fc4d966db2cd0af9cc866805f36a6fc5d0058dfbb74"
+  },
+  "prepared_files": {
+    "clean.parquet": "2c4f385d6aebe7ce24910cffa06faf1ad0aa41a2c82285365c5eedf32b9e3ddf",
+    "splits.parquet": "7f145788c8c7db4f29d568d9cfe3fa67d087498d8f1afd44abd42084be30e2fb"
+  },
+  "split_sets": {
+    "random": {
+      "train": {
+        "rows": 3129367,
+        "sha256": "6ce1f705ad05f8ee5fcfec4016849d89080111e5483acab9cf75d1add484d107"
+      },
+      "val": {
+        "rows": 670642,
+        "sha256": "0a38343618a54310815f24fd3286cbd84a72fcde7e89d1b67e607c87e61ac7e4"
+      },
+      "test": {
+        "rows": 670568,
+        "sha256": "88972d027c9466cbb54b2bfeebb0b32d416cca5ad0a36c5a7eca4167092c55d2"
+      }
+    },
+    "lodo_2018-02-14": {
+      "train": {
+        "rows": 3251217,
+        "sha256": "f9a9f28260e7e6334a05a4f8e3988d873cd2e866362ddd867a668904a970da47"
+      },
+      "val": {
+        "rows": 414774,
+        "sha256": "0a9b0ca371a29f54046f58f169cdadc98a853cf4908d6d60ccecf8de99f4f4e8"
+      },
+      "test": {
+        "rows": 804586,
+        "sha256": "48d584801a4587aa36ff221b59f59ec9141579145f0ee4bb467bd31d92640b14"
+      }
+    },
+    "lodo_2018-02-15": {
+      "train": {
+        "rows": 3686586,
+        "sha256": "b9d9502cfc217d1533ad0c91485bb62559b85e2c046b590830415a4460836e92"
+      },
+      "val": {
+        "rows": 369217,
+        "sha256": "3a01958fe9b911e3970bf822d1d6d4d000101ab62b2c8f86c77e503410a01de0"
+      },
+      "test": {
+        "rows": 414774,
+        "sha256": "0a9b0ca371a29f54046f58f169cdadc98a853cf4908d6d60ccecf8de99f4f4e8"
+      }
+    },
+    "lodo_2018-02-16": {
+      "train": {
+        "rows": 3696733,
+        "sha256": "d5fd959bf7aa05b562d5b5913be3db7766220844ad5a75b9cb06b3d3b2ba6a35"
+      },
+      "val": {
+        "rows": 404627,
+        "sha256": "cae8f81d86b3ecd451a1ad1a7c7630fd86d7d8102e0959c026a25892d486ddf7"
+      },
+      "test": {
+        "rows": 369217,
+        "sha256": "3a01958fe9b911e3970bf822d1d6d4d000101ab62b2c8f86c77e503410a01de0"
+      }
+    },
+    "lodo_2018-02-20": {
+      "train": {
+        "rows": 3569440,
+        "sha256": "88c16db474fbc68924635e2f3f20acd19b331c3fd066c8688b89aaf78ef97e72"
+      },
+      "val": {
+        "rows": 496510,
+        "sha256": "d161ac959785365e85ddeb857802128d4ae0199dd745ffe200acd5aab76f729a"
+      },
+      "test": {
+        "rows": 404627,
+        "sha256": "cae8f81d86b3ecd451a1ad1a7c7630fd86d7d8102e0959c026a25892d486ddf7"
+      }
+    },
+    "lodo_2018-02-21": {
+      "train": {
+        "rows": 2636867,
+        "sha256": "39d59364685e601e3ee690c216600b4eec0eaf5807ae189d9a722c301837754b"
+      },
+      "val": {
+        "rows": 1337200,
+        "sha256": "635bc9cff7338e19562bcb164d6d03fdfa6b220d7f0caaf42713f6d5db3878ca"
+      },
+      "test": {
+        "rows": 496510,
+        "sha256": "d161ac959785365e85ddeb857802128d4ae0199dd745ffe200acd5aab76f729a"
+      }
+    },
+    "lodo_2018-03-02": {
+      "train": {
+        "rows": 2328791,
+        "sha256": "1928da3ae020dc4af02eed6006ce12932fba91dcc300d8635da540c3f6302cae"
+      },
+      "val": {
+        "rows": 804586,
+        "sha256": "48d584801a4587aa36ff221b59f59ec9141579145f0ee4bb467bd31d92640b14"
+      },
+      "test": {
+        "rows": 1337200,
+        "sha256": "635bc9cff7338e19562bcb164d6d03fdfa6b220d7f0caaf42713f6d5db3878ca"
+      }
+    },
+    "bot": {
+      "train": {
+        "rows": 2610824,
+        "sha256": "4e5785229ce35bbd5d3ed9df6a7fadf9e7a175a917aa97cf70c74bee83148fd2"
+      },
+      "val": {
+        "rows": 496510,
+        "sha256": "d161ac959785365e85ddeb857802128d4ae0199dd745ffe200acd5aab76f729a"
+      },
+      "test": {
+        "rows": 1337200,
+        "sha256": "635bc9cff7338e19562bcb164d6d03fdfa6b220d7f0caaf42713f6d5db3878ca"
+      }
+    },
+    "bot_unseen_hosts": {
+      "train": {
+        "rows": 2564102,
+        "sha256": "07a42b7175bca69f473a28c37123a86d9b77df37722f60006842d32e1ac48993"
+      },
+      "val": {
+        "rows": 462789,
+        "sha256": "1c8c9837840e3e321a2ff56a510dbbd0c4f7d522fb2c8862b88bf74f342f143a"
+      },
+      "test": {
+        "rows": 1337200,
+        "sha256": "635bc9cff7338e19562bcb164d6d03fdfa6b220d7f0caaf42713f6d5db3878ca"
+      }
+    }
+  },
+  "config": {
+    "dataset": {
+      "name": "nf_cicids2018",
+      "raw_csv": "data/raw/nf/NF-CICIDS2018-v3.csv",
+      "processed_dir": "data/processed/nf_cicids2018",
+      "eda_dir": "results/eda",
+      "make_figures": true,
+      "drop_duplicates": true,
+      "use_ttl_features": false,
+      "exclude_days": [
+        "2018-02-27"
+      ],
+      "window_seconds": 300,
+      "use_window_features": false,
+      "sampling": "windows",
+      "normal_window_ratio": 0.5,
+      "max_attack_flows_per_window": 5000,
+      "max_normal_rows": 500000,
+      "max_rows_per_attack": 50000,
+      "sample_seed": 42,
+      "noisy_attack_types": [
+        "infilteration",
+        "brute_force_-web",
+        "brute_force_-xss",
+        "sql_injection"
+      ],
+      "log_transform": true,
+      "min_category_freq": 20,
+      "chunk_rows": 2000000,
+      "split_set": "random",
+      "raw_max_rows": null
+    },
+    "split": {
+      "lodo_days": [],
+      "bot_attack_type": "bot",
+      "bot_val_day": null,
+      "bot_cnc_hosts": [
+        "18.219.211.138"
+      ],
+      "n_folds": 20,
+      "val_folds": 3,
+      "test_folds": 3,
+      "seed": 42,
+      "max_group_size": 200
+    }
+  },
+  "environment": {
+    "python": "3.12.13",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "numpy": "2.5.5",
+    "pandas": "3.1.1",
+    "scikit-learn": "1.9.1",
+    "xgboost": "3.4.1",
+    "optuna": "5.1.0",
+    "imbalanced-learn": "0.14.2",
+    "torch": "2.15.0"
+  },
+  "git": {
+    "commit": "338ab84944c4c0e73137d75e9ec0fb654dc75840",
+    "uncommitted_changes": true
+  },
+  "files": {
+    "data_metadata.json": "b5acb453971f6fd7c610a1138cd938887eb4bacfd69739880f30a6ef3b81a050",
+    "validation_report.json": "f21f2f9fc51a63bfeea3d5486826c0d1745c931239925c4a8fc4c06d600f8e4c"
+  }
+}

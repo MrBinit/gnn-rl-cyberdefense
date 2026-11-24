@@ -2,7 +2,7 @@
 
 No model training; reads the data and writes diagnostics (docs/08). Usage::
 
-    uv run python scripts/survey_dataset.py                                  # ToN-IoT
+    uv run python scripts/survey_dataset.py          # our prepared splits (after prepare_data)
     uv run python scripts/survey_dataset.py --survey.dataset netflow_v3 \\
         --survey.name NF-UNSW-NB15-v3 --survey.paths '["data/raw/nf/NF-UNSW-NB15-v3.csv"]'
     uv run python scripts/survey_dataset.py --survey.dataset cic_ids2017 \\
@@ -21,6 +21,7 @@ import logging
 import pandas as pd
 
 from cyberdefense.config import ExperimentConfig
+from cyberdefense.data.schema import SPLITS, load_split
 from cyberdefense.data.survey import (
     ADAPTERS,
     NETFLOW_COLS,
@@ -29,7 +30,6 @@ from cyberdefense.data.survey import (
     read_csvs,
     survey,
 )
-from cyberdefense.data.ton_iot import SPLITS, load_split
 from cyberdefense.utils import setup_logging
 
 log = logging.getLogger("survey_dataset")
@@ -40,7 +40,7 @@ def main() -> None:
     cfg = ExperimentConfig(_cli_parse_args=True)
     sc = cfg.survey
     name = sc.name or sc.dataset
-    if sc.dataset != "ton_iot":
+    if sc.dataset != "prepared":
         files = [*sc.paths, *([sc.lanl_redteam] if sc.lanl_redteam else [])]
         missing = [str(p) for p in files if not p.exists()]
         if not sc.paths or missing:
@@ -48,8 +48,8 @@ def main() -> None:
                 f"{name}: no data to survey - missing {missing or 'all files (empty path list)'}. "
                 "Download the dataset first (links in docs/08 §6) and put the CSVs there."
             )
-    if sc.dataset == "ton_iot":
-        df = ADAPTERS["ton_iot"](pd.concat([load_split(cfg.ton_iot, s) for s in SPLITS]))
+    if sc.dataset == "prepared":
+        df = ADAPTERS["prepared"](pd.concat([load_split(cfg.dataset, s) for s in SPLITS]))
     elif sc.dataset == "lanl":
         if sc.lanl_redteam is None:
             raise SystemExit("lanl needs --survey.lanl_redteam")

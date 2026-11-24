@@ -1,0 +1,756 @@
+{
+  "dataset": "nf_cicids2018",
+  "source": "data/raw/nf/NF-CICIDS2018-v3.csv",
+  "sampling": {
+    "strategy": "windows",
+    "window_seconds": 300,
+    "normal_window_ratio": 0.5,
+    "max_attack_flows_per_window": 5000,
+    "seed": 42
+  },
+  "noisy_label_rows": 9641,
+  "days": [
+    "2018-02-14",
+    "2018-02-15",
+    "2018-02-16",
+    "2018-02-20",
+    "2018-02-21",
+    "2018-02-22",
+    "2018-02-23",
+    "2018-02-28",
+    "2018-03-01",
+    "2018-03-02"
+  ],
+  "attack_types_per_day": {
+    "2018-02-14": [
+      "ftp-bruteforce",
+      "ssh-bruteforce"
+    ],
+    "2018-02-15": [
+      "dos_attacks-goldeneye",
+      "dos_attacks-slowloris"
+    ],
+    "2018-02-16": [
+      "dos_attacks-hulk",
+      "dos_attacks-slowhttptest"
+    ],
+    "2018-02-20": [
+      "ddos_attacks-loic-http"
+    ],
+    "2018-02-21": [
+      "ddos_attack-hoic",
+      "ddos_attack-loic-udp"
+    ],
+    "2018-02-22": [
+      "brute_force_-web",
+      "brute_force_-xss",
+      "sql_injection"
+    ],
+    "2018-02-28": [
+      "infilteration"
+    ],
+    "2018-03-01": [
+      "infilteration"
+    ],
+    "2018-03-02": [
+      "bot"
+    ]
+  },
+  "clean": {
+    "raw_rows": 20115529,
+    "excluded_day_rows": 828,
+    "duplicate_rows": 628756,
+    "deduplicated_rows": 19485945,
+    "clean_rows": 4470577,
+    "sampling": "windows",
+    "windows_total": 1358,
+    "windows_kept": 270,
+    "attack_windows_kept": 180,
+    "rows_per_class_before_sampling": {
+      "normal": 17391925,
+      "ddos_attack-hoic": 1032311,
+      "ddos_attacks-loic-http": 288589,
+      "ftp-bruteforce": 193360,
+      "infilteration": 115524,
+      "bot": 111460,
+      "dos_attacks-slowhttptest": 105550,
+      "dos_attacks-hulk": 100076,
+      "ssh-bruteforce": 94237,
+      "dos_attacks-goldeneye": 30650,
+      "dos_attacks-slowloris": 18020,
+      "ddos_attack-loic-udp": 1725,
+      "brute_force_-web": 1618,
+      "brute_force_-xss": 460,
+      "sql_injection": 440
+    },
+    "rows_per_class_after_sampling": {
+      "normal": 3911305,
+      "bot": 111460,
+      "ftp-bruteforce": 99160,
+      "ssh-bruteforce": 90932,
+      "ddos_attacks-loic-http": 71831,
+      "ddos_attack-hoic": 60000,
+      "dos_attacks-slowhttptest": 55460,
+      "dos_attacks-goldeneye": 26043,
+      "dos_attacks-slowloris": 18020,
+      "dos_attacks-hulk": 15000,
+      "infilteration": 9450,
+      "ddos_attack-loic-udp": 1725,
+      "brute_force_-web": 122,
+      "brute_force_-xss": 40,
+      "sql_injection": 29
+    },
+    "removed_features": {
+      "FTP_COMMAND_RET_CODE": "constant (cardinality 1)",
+      "LONGEST_FLOW_PKT": "identical to MAX_IP_PKT_LEN (Spearman r = 1.0)",
+      "RETRANSMITTED_IN_PKTS": "duplicates RETRANSMITTED_IN_BYTES (r = 0.998)",
+      "RETRANSMITTED_OUT_PKTS": "duplicates RETRANSMITTED_OUT_BYTES (r = 1.0)",
+      "ICMP_TYPE": "type*256+code; ICMP_IPV4_TYPE kept"
+    },
+    "never_feature_cols": [
+      "IPV4_SRC_ADDR",
+      "L4_SRC_PORT",
+      "IPV4_DST_ADDR",
+      "L4_DST_PORT",
+      "FLOW_START_MILLISECONDS",
+      "FLOW_END_MILLISECONDS",
+      "DNS_QUERY_ID",
+      "MIN_TTL",
+      "MAX_TTL"
+    ]
+  },
+  "split_config": {
+    "lodo_days": [],
+    "bot_attack_type": "bot",
+    "bot_val_day": null,
+    "bot_cnc_hosts": [
+      "18.219.211.138"
+    ],
+    "n_folds": 20,
+    "val_folds": 3,
+    "test_folds": 3,
+    "seed": 42,
+    "max_group_size": 200
+  },
+  "bot_hosts": [
+    "172.31.69.10",
+    "172.31.69.12",
+    "172.31.69.14",
+    "172.31.69.17",
+    "172.31.69.23",
+    "172.31.69.26",
+    "172.31.69.29",
+    "172.31.69.8"
+  ],
+  "split_sets": {
+    "random": {
+      "rows": {
+        "train": 3129367,
+        "val": 670642,
+        "test": 670568
+      },
+      "excluded_rows": 0,
+      "days": {
+        "train": [
+          "2018-02-14",
+          "2018-02-15",
+          "2018-02-16",
+          "2018-02-20",
+          "2018-02-21",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01",
+          "2018-03-02"
+        ],
+        "val": [
+          "2018-02-14",
+          "2018-02-15",
+          "2018-02-16",
+          "2018-02-20",
+          "2018-02-21",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01",
+          "2018-03-02"
+        ],
+        "test": [
+          "2018-02-14",
+          "2018-02-15",
+          "2018-02-16",
+          "2018-02-20",
+          "2018-02-21",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01",
+          "2018-03-02"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1251,
+        "val": 0.1252,
+        "test": 0.1251
+      },
+      "clean_attack_rows": {
+        "train": 384705,
+        "val": 82498,
+        "test": 82428
+      },
+      "class_counts": {
+        "train": {
+          "bot": 78022,
+          "brute_force_-web": 81,
+          "brute_force_-xss": 28,
+          "ddos_attack-hoic": 41965,
+          "ddos_attack-loic-udp": 1206,
+          "ddos_attacks-loic-http": 50282,
+          "dos_attacks-goldeneye": 18229,
+          "dos_attacks-hulk": 10500,
+          "dos_attacks-slowhttptest": 38822,
+          "dos_attacks-slowloris": 12614,
+          "ftp-bruteforce": 69412,
+          "infilteration": 6619,
+          "normal": 2737914,
+          "sql_injection": 20,
+          "ssh-bruteforce": 63653
+        },
+        "val": {
+          "bot": 16719,
+          "brute_force_-web": 19,
+          "brute_force_-xss": 6,
+          "ddos_attack-hoic": 9051,
+          "ddos_attack-loic-udp": 260,
+          "ddos_attacks-loic-http": 10775,
+          "dos_attacks-goldeneye": 3908,
+          "dos_attacks-hulk": 2250,
+          "dos_attacks-slowhttptest": 8319,
+          "dos_attacks-slowloris": 2703,
+          "ftp-bruteforce": 14874,
+          "infilteration": 1414,
+          "normal": 586700,
+          "sql_injection": 5,
+          "ssh-bruteforce": 13639
+        },
+        "test": {
+          "bot": 16719,
+          "brute_force_-web": 22,
+          "brute_force_-xss": 6,
+          "ddos_attack-hoic": 8984,
+          "ddos_attack-loic-udp": 259,
+          "ddos_attacks-loic-http": 10774,
+          "dos_attacks-goldeneye": 3906,
+          "dos_attacks-hulk": 2250,
+          "dos_attacks-slowhttptest": 8319,
+          "dos_attacks-slowloris": 2703,
+          "ftp-bruteforce": 14874,
+          "infilteration": 1417,
+          "normal": 586691,
+          "sql_injection": 4,
+          "ssh-bruteforce": 13640
+        }
+      }
+    },
+    "lodo_2018-02-14": {
+      "rows": {
+        "train": 3251217,
+        "val": 414774,
+        "test": 804586
+      },
+      "excluded_rows": 0,
+      "days": {
+        "train": [
+          "2018-02-16",
+          "2018-02-20",
+          "2018-02-21",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01",
+          "2018-03-02"
+        ],
+        "val": [
+          "2018-02-15"
+        ],
+        "test": [
+          "2018-02-14"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1,
+        "val": 0.1062,
+        "test": 0.2363
+      },
+      "clean_attack_rows": {
+        "train": 315476,
+        "val": 44063,
+        "test": 190092
+      },
+      "class_counts": {
+        "train": {
+          "bot": 111460,
+          "brute_force_-web": 122,
+          "brute_force_-xss": 40,
+          "ddos_attack-hoic": 60000,
+          "ddos_attack-loic-udp": 1725,
+          "ddos_attacks-loic-http": 71831,
+          "dos_attacks-hulk": 15000,
+          "dos_attacks-slowhttptest": 55460,
+          "infilteration": 9450,
+          "normal": 2926100,
+          "sql_injection": 29
+        },
+        "val": {
+          "dos_attacks-goldeneye": 26043,
+          "dos_attacks-slowloris": 18020,
+          "normal": 370711
+        },
+        "test": {
+          "ftp-bruteforce": 99160,
+          "normal": 614494,
+          "ssh-bruteforce": 90932
+        }
+      }
+    },
+    "lodo_2018-02-15": {
+      "rows": {
+        "train": 3686586,
+        "val": 369217,
+        "test": 414774
+      },
+      "excluded_rows": 0,
+      "days": {
+        "train": [
+          "2018-02-14",
+          "2018-02-20",
+          "2018-02-21",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01",
+          "2018-03-02"
+        ],
+        "val": [
+          "2018-02-16"
+        ],
+        "test": [
+          "2018-02-15"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1206,
+        "val": 0.1908,
+        "test": 0.1062
+      },
+      "clean_attack_rows": {
+        "train": 435108,
+        "val": 70460,
+        "test": 44063
+      },
+      "class_counts": {
+        "train": {
+          "bot": 111460,
+          "brute_force_-web": 122,
+          "brute_force_-xss": 40,
+          "ddos_attack-hoic": 60000,
+          "ddos_attack-loic-udp": 1725,
+          "ddos_attacks-loic-http": 71831,
+          "ftp-bruteforce": 99160,
+          "infilteration": 9450,
+          "normal": 3241837,
+          "sql_injection": 29,
+          "ssh-bruteforce": 90932
+        },
+        "val": {
+          "dos_attacks-hulk": 15000,
+          "dos_attacks-slowhttptest": 55460,
+          "normal": 298757
+        },
+        "test": {
+          "dos_attacks-goldeneye": 26043,
+          "dos_attacks-slowloris": 18020,
+          "normal": 370711
+        }
+      }
+    },
+    "lodo_2018-02-16": {
+      "rows": {
+        "train": 3696733,
+        "val": 404627,
+        "test": 369217
+      },
+      "excluded_rows": 0,
+      "days": {
+        "train": [
+          "2018-02-14",
+          "2018-02-15",
+          "2018-02-21",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01",
+          "2018-03-02"
+        ],
+        "val": [
+          "2018-02-20"
+        ],
+        "test": [
+          "2018-02-16"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1128,
+        "val": 0.1775,
+        "test": 0.1908
+      },
+      "clean_attack_rows": {
+        "train": 407340,
+        "val": 71831,
+        "test": 70460
+      },
+      "class_counts": {
+        "train": {
+          "bot": 111460,
+          "brute_force_-web": 122,
+          "brute_force_-xss": 40,
+          "ddos_attack-hoic": 60000,
+          "ddos_attack-loic-udp": 1725,
+          "dos_attacks-goldeneye": 26043,
+          "dos_attacks-slowloris": 18020,
+          "ftp-bruteforce": 99160,
+          "infilteration": 9450,
+          "normal": 3279752,
+          "sql_injection": 29,
+          "ssh-bruteforce": 90932
+        },
+        "val": {
+          "ddos_attacks-loic-http": 71831,
+          "normal": 332796
+        },
+        "test": {
+          "dos_attacks-hulk": 15000,
+          "dos_attacks-slowhttptest": 55460,
+          "normal": 298757
+        }
+      }
+    },
+    "lodo_2018-02-20": {
+      "rows": {
+        "train": 3569440,
+        "val": 496510,
+        "test": 404627
+      },
+      "excluded_rows": 0,
+      "days": {
+        "train": [
+          "2018-02-14",
+          "2018-02-15",
+          "2018-02-16",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01",
+          "2018-03-02"
+        ],
+        "val": [
+          "2018-02-21"
+        ],
+        "test": [
+          "2018-02-20"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1193,
+        "val": 0.1243,
+        "test": 0.1775
+      },
+      "clean_attack_rows": {
+        "train": 416075,
+        "val": 61725,
+        "test": 71831
+      },
+      "class_counts": {
+        "train": {
+          "bot": 111460,
+          "brute_force_-web": 122,
+          "brute_force_-xss": 40,
+          "dos_attacks-goldeneye": 26043,
+          "dos_attacks-hulk": 15000,
+          "dos_attacks-slowhttptest": 55460,
+          "dos_attacks-slowloris": 18020,
+          "ftp-bruteforce": 99160,
+          "infilteration": 9450,
+          "normal": 3143724,
+          "sql_injection": 29,
+          "ssh-bruteforce": 90932
+        },
+        "val": {
+          "ddos_attack-hoic": 60000,
+          "ddos_attack-loic-udp": 1725,
+          "normal": 434785
+        },
+        "test": {
+          "ddos_attacks-loic-http": 71831,
+          "normal": 332796
+        }
+      }
+    },
+    "lodo_2018-02-21": {
+      "rows": {
+        "train": 2636867,
+        "val": 1337200,
+        "test": 496510
+      },
+      "excluded_rows": 0,
+      "days": {
+        "train": [
+          "2018-02-14",
+          "2018-02-15",
+          "2018-02-16",
+          "2018-02-20",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01"
+        ],
+        "val": [
+          "2018-03-02"
+        ],
+        "test": [
+          "2018-02-21"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1464,
+        "val": 0.0834,
+        "test": 0.1243
+      },
+      "clean_attack_rows": {
+        "train": 376446,
+        "val": 111460,
+        "test": 61725
+      },
+      "class_counts": {
+        "train": {
+          "brute_force_-web": 122,
+          "brute_force_-xss": 40,
+          "ddos_attacks-loic-http": 71831,
+          "dos_attacks-goldeneye": 26043,
+          "dos_attacks-hulk": 15000,
+          "dos_attacks-slowhttptest": 55460,
+          "dos_attacks-slowloris": 18020,
+          "ftp-bruteforce": 99160,
+          "infilteration": 9450,
+          "normal": 2250780,
+          "sql_injection": 29,
+          "ssh-bruteforce": 90932
+        },
+        "val": {
+          "bot": 111460,
+          "normal": 1225740
+        },
+        "test": {
+          "ddos_attack-hoic": 60000,
+          "ddos_attack-loic-udp": 1725,
+          "normal": 434785
+        }
+      }
+    },
+    "lodo_2018-03-02": {
+      "rows": {
+        "train": 2328791,
+        "val": 804586,
+        "test": 1337200
+      },
+      "excluded_rows": 0,
+      "days": {
+        "train": [
+          "2018-02-15",
+          "2018-02-16",
+          "2018-02-20",
+          "2018-02-21",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01"
+        ],
+        "val": [
+          "2018-02-14"
+        ],
+        "test": [
+          "2018-03-02"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1107,
+        "val": 0.2363,
+        "test": 0.0834
+      },
+      "clean_attack_rows": {
+        "train": 248079,
+        "val": 190092,
+        "test": 111460
+      },
+      "class_counts": {
+        "train": {
+          "brute_force_-web": 122,
+          "brute_force_-xss": 40,
+          "ddos_attack-hoic": 60000,
+          "ddos_attack-loic-udp": 1725,
+          "ddos_attacks-loic-http": 71831,
+          "dos_attacks-goldeneye": 26043,
+          "dos_attacks-hulk": 15000,
+          "dos_attacks-slowhttptest": 55460,
+          "dos_attacks-slowloris": 18020,
+          "infilteration": 9450,
+          "normal": 2071071,
+          "sql_injection": 29
+        },
+        "val": {
+          "ftp-bruteforce": 99160,
+          "normal": 614494,
+          "ssh-bruteforce": 90932
+        },
+        "test": {
+          "bot": 111460,
+          "normal": 1225740
+        }
+      }
+    },
+    "bot": {
+      "rows": {
+        "train": 2610824,
+        "val": 496510,
+        "test": 1337200
+      },
+      "excluded_rows": 26043,
+      "days": {
+        "train": [
+          "2018-02-14",
+          "2018-02-15",
+          "2018-02-16",
+          "2018-02-20",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01"
+        ],
+        "val": [
+          "2018-02-21"
+        ],
+        "test": [
+          "2018-03-02"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1379,
+        "val": 0.1243,
+        "test": 0.0834
+      },
+      "clean_attack_rows": {
+        "train": 350403,
+        "val": 61725,
+        "test": 111460
+      },
+      "class_counts": {
+        "train": {
+          "brute_force_-web": 122,
+          "brute_force_-xss": 40,
+          "ddos_attacks-loic-http": 71831,
+          "dos_attacks-hulk": 15000,
+          "dos_attacks-slowhttptest": 55460,
+          "dos_attacks-slowloris": 18020,
+          "ftp-bruteforce": 99160,
+          "infilteration": 9450,
+          "normal": 2250780,
+          "sql_injection": 29,
+          "ssh-bruteforce": 90932
+        },
+        "val": {
+          "ddos_attack-hoic": 60000,
+          "ddos_attack-loic-udp": 1725,
+          "normal": 434785
+        },
+        "test": {
+          "bot": 111460,
+          "normal": 1225740
+        }
+      }
+    },
+    "bot_unseen_hosts": {
+      "rows": {
+        "train": 2564102,
+        "val": 462789,
+        "test": 1337200
+      },
+      "excluded_rows": 106486,
+      "days": {
+        "train": [
+          "2018-02-14",
+          "2018-02-15",
+          "2018-02-16",
+          "2018-02-20",
+          "2018-02-22",
+          "2018-02-23",
+          "2018-02-28",
+          "2018-03-01"
+        ],
+        "val": [
+          "2018-02-21"
+        ],
+        "test": [
+          "2018-03-02"
+        ]
+      },
+      "attack_share": {
+        "train": 0.1391,
+        "val": 0.1334,
+        "test": 0.0834
+      },
+      "clean_attack_rows": {
+        "train": 350403,
+        "val": 61725,
+        "test": 111460
+      },
+      "class_counts": {
+        "train": {
+          "brute_force_-web": 122,
+          "brute_force_-xss": 40,
+          "ddos_attacks-loic-http": 71831,
+          "dos_attacks-hulk": 15000,
+          "dos_attacks-slowhttptest": 55460,
+          "dos_attacks-slowloris": 18020,
+          "ftp-bruteforce": 99160,
+          "infilteration": 6185,
+          "normal": 2207323,
+          "sql_injection": 29,
+          "ssh-bruteforce": 90932
+        },
+        "val": {
+          "ddos_attack-hoic": 60000,
+          "ddos_attack-loic-udp": 1725,
+          "normal": 401064
+        },
+        "test": {
+          "bot": 111460,
+          "normal": 1225740
+        }
+      }
+    }
+  },
+  "random_checks": {
+    "target_fractions": {
+      "train": 0.7,
+      "val": 0.15,
+      "test": 0.15
+    },
+    "feature_group_overlap": {
+      "train&val": 0,
+      "train&test": 0,
+      "val&test": 0
+    },
+    "max_class_share_deviation": 7e-05,
+    "test_rows_with_vector_seen_in_train": 0.3233
+  }
+}

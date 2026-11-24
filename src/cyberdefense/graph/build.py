@@ -23,7 +23,7 @@ from torch_geometric.data import Data
 from cyberdefense.config import ExperimentConfig, GraphConfig
 from cyberdefense.data.preprocess import make_preprocessor
 from cyberdefense.data.protocols import holdout_mask
-from cyberdefense.data.ton_iot import SPLIT_COL, SPLITS, TARGET_BINARY, TARGET_MULTI
+from cyberdefense.data.schema import SPLIT_COL, SPLITS, TARGET_BINARY, TARGET_MULTI
 
 DEGREE_FEATURES = ["log_out_flows", "log_in_flows", "log_out_neighbours", "log_in_neighbours"]
 
@@ -75,7 +75,7 @@ def build_graph(splits: dict[str, pd.DataFrame], cfg: ExperimentConfig) -> Data:
     test = in_split["test"]
     mp = train if g.message_passing == "train_only" else train | val | test
 
-    pre = make_preprocessor(cfg.ton_iot)
+    pre = make_preprocessor(cfg.dataset)
     pre.fit(df[train])
     edge_attr = _tensor(pre.transform(df).astype(np.float32))
 

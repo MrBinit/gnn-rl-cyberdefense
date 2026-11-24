@@ -1,255 +1,317 @@
-# 01 · ToN-IoT data: exploration, cleaning and split
+# 01 · Data exploration: NF-CICIDS2018-v3
 
-## Summary
-- **Data:** ToN-IoT network train/test CSV. 211,043 flows → **190,444 after removing exact duplicates**.
-  33 flow features, binary `label` and 10-class `attack_type`.
-- **Split:** 70/15/15 train/val/test, **stratified on attack type** (identical class shares in all splits)
-  and group-aware on identical feature vectors. Saved as parquet in `data/processed/ton_iot/`.
-- **Leakage:** the source IP alone predicts the label (F1 0.994). IPs and ports are kept for graph
-  construction only, **never as features**.
-- **Difficulty:** binary detection on a random split is saturated (F1 ≈ 0.999). The research comparison
-  must rely on **unseen attack types**, **unseen attacker hosts** and **multiclass macro-F1**.
-- **Graph design:** a homogeneous host graph with flows as edges, and edge classification.
+The full dataset was explored: all **20,115,529 flows**, not a sample, unless stated. The aim is to decide how to
+prepare the data, build the graph and choose models and parameters. Every number here was measured on
+`data/raw/nf/NF-CICIDS2018-v3.csv` (UQ NetFlow v3 version of CSE-CIC-IDS2018; why this dataset: docs/08).
+Figures are in `docs/figures/`.
 
-## Reproduce
-```bash
-uv run python scripts/prepare_data.py                              # clean → split → parquet → figures
-uv run python scripts/prepare_data.py --no-ton_iot.make_figures # skip figures
-```
-| Output | Contents |
+> The project's first dataset (ToN-IoT) has been removed. Its exploration lives in git history (first commit),
+> and what it taught us is summarised in docs/05–08.
+
+## 0. Key takeaways
+1. **The labels of 4 attack types are unreliable.** For XSS, SQL injection, Infiltration and web brute force,
+   68–91% of "attack" flows have feature vectors that also occur as normal traffic. Their hosts, ports and
+   timing show time-window labelling (§6). Exclude them from headline results.
+2. **One attack family per day, inside narrow time windows,** so time and attack type are confounded (§3). A
+   **day-based split is an unseen-attack test,** and time must never be a feature.
+3. **The network is 464 internal hosts (AWS 172.31.x) plus 205,332 external IPs.** Every flow touches an
+   internal host; 77% of external IPs appear on only one day (§4). Graphs must be **inductive** (no node ids),
+   and external endpoints are mostly degree-1 leaves.
+4. **External DoS/DDoS/brute-force attackers are single-purpose hosts, each hitting one victim server.**
+   **Bot** is the only clean mixed-role case: 8 internal hosts that behave normally on other days (§4.3).
+5. **Within a 5-minute window, graph structure is highly informative.** Per-pair flow count reaches ROC-AUC
+   0.96 for bot (best flow feature 0.91), and pair or source flow rate reaches 0.99–1.00 for DoS and brute force
+   (§8). The baselines must receive the **same window aggregates** for a fair comparison.
+6. **The current random sampling of normal flows destroys graph neighbourhoods.** Keeping 500k of 17.5M normal
+   flows removes about 97% of each window's edges. Graph experiments need **complete traffic within the
+   selected time windows** (§9.1).
+
+## 1. At a glance
+| Property | Value |
 |---|---|
-| `data/processed/ton_iot/train.parquet`, `val.parquet`, `test.parquet` | the three splits |
-| `data/processed/ton_iot/clean.parquet` | all cleaned rows, plus a `split` column |
-| `data/processed/ton_iot/metadata.json` | row and class counts per split, split config, checks |
-| `results/eda/*.png`, `results/eda/summary.json` | the figures in this document, plus graph statistics |
+| Flows / columns | 20,115,529 / 55 (53 NetFlow fields + `Label` + `Attack`) |
+| Time | 14 Feb – 2 Mar 2018, **11 capture days**, only **12:00–21:30 UTC** each day (§3) |
+| Classes | normal 87.07%, 14 attack types (§2) |
+| Hosts | 205,801: 464 internal (`172.31.0.0/16` and a few link-local/special), 205,332 external public IPs, 5 multicast |
+| Host pairs | 1,127,070 undirected; one connected component |
+| Flow duration | median 0.03 s, p95 116 s, max 121 s (the exporter's 120 s active timeout) |
 
-All settings are in `TonIoTConfig` and `SplitConfig` (`src/cyberdefense/config.py`). Load a split in code
-with `cyberdefense.data.ton_iot.load_split(cfg.ton_iot, "train")`.
+## 2. Classes and imbalance
+| Class | Flows | Share | | Class | Flows | Share |
+|---|---|---|---|---|---|---|
+| normal | 17,514,626 | 87.07% | | ssh-bruteforce | 188,474 | 0.94% |
+| ddos_attack-hoic | 1,032,311 | 5.13% | | infilteration ⚠ | 188,152 | 0.94% |
+| ftp-bruteforce | 386,720 | 1.92% | | dos_attacks-slowhttptest | 105,550 | 0.52% |
+| ddos_attacks-loic-http | 288,589 | 1.43% | | dos_attacks-hulk | 100,076 | 0.50% |
+| **bot** | 207,703 | 1.03% | | dos_attacks-goldeneye | 61,300 | 0.30% |
+| dos_attacks-slowloris | 36,040 | 0.18% | | ddos_attack-loic-udp | 3,450 | 0.017% |
+| brute_force_-web ⚠ | 1,618 | 0.008% | | brute_force_-xss ⚠ | 480 | 0.002% |
+| sql_injection ⚠ | 440 | 0.002% | | | | |
 
-## Source
-`train_test_network.csv` from the Hugging Face copy of the ToN-IoT network train/test set
-(`codymlewis/TON_IoT_network`), 211,043 rows × 44 columns. The official source is the UNSW ToN-IoT
-project page, in its `Train_Test_datasets` folder.
+⚠ = unreliable labels (§6). The imbalance runs from 87% normal down to 440 flows. HOIC alone is 40% of all
+attacks, so un-weighted training would learn "HOIC vs normal".
 
-**Licence:** free for academic research. Commercial use requires permission from the author
-(Dr Nour Moustafa). Publications must cite the ToN-IoT papers listed on the dataset page.
+## 3. Time structure
+![timeline](figures/nf2018_timeline.png)
 
-**Provenance check** (`scripts/validate_data.py`, results/validation/report.json): every attack class matches
-the counts reported for the official file exactly (8 × 20,000 plus 1,043 mitm). Only the normal class differs:
-**50,000 here vs 300,000 reported** (461,043 rows in total). This copy is very likely the official file with
-normal traffic subsampled. That reverses the class balance: 78% attack here, about 35% in the official file.
-A row-level comparison needs the official CSV, which has to be downloaded by hand:
-`uv run python scripts/validate_data.py --validation.official_csv <path>`. Until that check is done, state
-the subsample in any write-up.
-
-### Raw columns (44)
-| Group | Columns |
-|---|---|
-| Identifiers (4) | `src_ip`, `src_port`, `dst_ip`, `dst_port` |
-| Numeric (11) | `duration`, `src_bytes`, `dst_bytes`, `missed_bytes`, `src_pkts`, `src_ip_bytes`, `dst_pkts`, `dst_ip_bytes`, `http_trans_depth`, `http_request_body_len`, `http_response_body_len` |
-| Categorical (22) | `proto`, `service`, `conn_state`, `dns_qclass`, `dns_qtype`, `dns_rcode`, `dns_AA`, `dns_RD`, `dns_RA`, `dns_rejected`, `ssl_version`, `ssl_cipher`, `ssl_resumed`, `ssl_established`, `http_method`, `http_version`, `http_status_code`, `http_orig_mime_types`, `http_resp_mime_types`, `weird_name`, `weird_addl`, `weird_notice` |
-| Free text (5, dropped) | `dns_query`, `http_uri`, `http_user_agent`, `ssl_subject`, `ssl_issuer` |
-| Targets (2) | `label` (0 normal / 1 attack), `type` (renamed `attack_type`) |
-
-Many fields apply only to one protocol, so they are mostly `-`. The SSL, HTTP and weird columns are
-99.8–100% `-`, `dns_*` is 83%, and `service` is 63%.
-
-![sparsity](../results/eda/sparsity.png)
-
-## Cleaning (`cyberdefense.data.ton_iot.clean`)
-| Step | Why |
-|---|---|
-| Drop the free-text columns, *then* 20,599 duplicate rows (9.8%) → 190,444 rows | Copies in both train and test inflate scores. Ransomware (26%), xss (24%) and normal (16%) have the most. 30 of the rows (all normal) differ from another row only in a dropped text column, such as the DNS query string. Deduplicating before dropping those columns missed them; validation caught it. |
-| Treat `-` as "not applicable": 0 for numeric fields, `"none"` for categorical | Zeek writes `-` when a protocol field doesn't apply. There are no true NaNs. |
-| Drop the 5 free-text columns | They act as signatures (for example the literal SQL-injection URI), not behaviour. |
-| Treat DNS/HTTP codes and T/F flags as categorical | A DNS qtype of 28 is not "more" than 1. |
-| Keep the 4 identifier columns for graph construction only | See [Leakage](#leakage-host-identity-gives-the-label-away). |
-| Add `feature_group`, a hash of the 33 feature values | Used by the split to keep repeated feature vectors together. |
-| Fail on any unexpected or missing column | A schema change in the source can't pass through silently. |
-| Do not scale or encode here | Scalers and encoders are fitted on the training split only (see [Preprocessing](#preprocessing-cyberdefensedatapreprocess)). |
-
-No two exactly identical feature rows had conflicting labels in the raw file. Conflicts appear only once
-IPs and ports are ignored; see [Conflicting labels](#conflicting-labels-a-hard-limit-on-accuracy).
-
-## Class balance (after dedup)
-| Class | Rows | Share |
-|---|---|---|
-| normal | 42,010 | 22.1% |
-| scanning | 20,000 | 10.5% |
-| ddos | 19,993 | 10.5% |
-| injection | 19,964 | 10.5% |
-| password | 19,861 | 10.4% |
-| dos | 18,992 | 10.0% |
-| backdoor | 18,711 | 9.8% |
-| xss | 15,137 | 7.9% |
-| ransomware | 14,735 | 7.7% |
-| mitm | 1,041 | 0.5% |
-
-- **Binary:** 148,434 attack vs 42,010 normal (78% attack). Attack is the *majority*, so accuracy is
-  misleading. Report F1, precision, recall and **FPR**.
-- **Multiclass:** mitm is very rare (0.5%). Use macro-F1, stratified splits and per-class reports.
-
-![class balance](../results/eda/class_balance.png)
-
-## Leakage: host identity gives the label away
-The attacking machines (192.168.1.30–39) almost only produce attack traffic.
-
-![src ip purity](../results/eda/src_ip_purity.png)
-
-- 43 of the 51 source IPs are 100% one class (44.5% of flows). Only 3 of the 1,026 host pairs have mixed labels.
-- Quick check (random 70/30 stratified split, after dedup):
-
-  | Model | Binary F1 |
-  |---|---|
-  | Lookup "majority label of this src_ip" | 0.994 |
-  | Random Forest, flow features incl. ports | 0.999 |
-  | Random Forest, flow features, no ports or IPs | 0.999 |
-
-**Implications**
-1. Binary detection on a random split is **saturated**. It can't separate RF, GNN and RL, so it can't answer
-   the research question on its own.
-2. Host identity must never be a feature. That means no one-hot IPs, no learnable per-node embeddings, and no
-   ports as raw features. Otherwise a GNN can learn "this node is an attacker" instead of attack behaviour.
-
-## Repeated feature vectors
-Exact-duplicate removal only catches rows that also match on IPs and ports. Once IPs and ports are excluded,
-**96,994 rows (50.9%) repeat another row's feature vector exactly**. There are only 93,450 distinct vectors.
-
-| Class | Share of rows that repeat another |
-|---|---|
-| ransomware | 98.3% |
-| backdoor | 89.5% |
-| scanning | 77.6% |
-| dos | 66.1% |
-| normal | 43.7% |
-| xss | 42.9% |
-| ddos | 40.3% |
-| password | 23.2% |
-| injection | 0.9% |
-| mitm | 0.5% |
-
-These are real repeated traffic (for example the same SMB probe sent to many ports), so they are **not deleted**.
-Deleting them would shrink ransomware to about 250 rows and break the graph, because each one is a real edge
-between hosts.
-
-The groups are extremely uneven. A single vector, a TCP flow of one SYN packet with no reply (`S0`, 0 bytes),
-covers **15,344 rows, 77% of all scanning**. One vector covers 35% of xss, and 12 vectors cover 78% of
-ransomware. These are thousands of separate connections that look identical at flow level, and a realistic
-test set must contain them.
-
-**Correction.** An earlier version of this doc said a plain random split inflates multiclass macro-F1 by about
-14 points (0.953 vs 0.815 for a fully grouped split). That was wrong. A fully grouped split must put each giant
-group in one split, which **breaks stratification**: scanning ended up at 3% of train and 38% of test. The
-score drop came from that class shift, not from memorisation. Measured with RF on the test split, varying how
-large a group may be before it is split row-wise:
-
-| Groups kept intact up to | Worst class-share deviation | Test rows whose vector occurs in train | RF macro-F1 |
+| Day | Normal | Attack (share) | Attack types (UTC window) |
 |---|---|---|---|
-| 1 row (plain stratified) | 0.00 pts | 53.3% | 0.954 |
-| 10 rows | 0.00 pts | 44.8% | 0.949 |
-| 50 rows | 0.01 pts | 36.9% | 0.953 |
-| 200 rows | 0.01 pts | 22.1% | 0.952 |
-| no limit (fully grouped) | 27.12 pts | 0.0% | 0.753 |
+| 14 Feb | 1,563,644 | 575,194 (26.9%) | FTP brute force 14:33–16:10, SSH brute force 18:01–19:32 |
+| 15 Feb | 1,567,981 | 97,340 (5.8%) | GoldenEye 13:27–14:11, Slowloris 15:00–15:41 |
+| 16 Feb | 1,578,503 | 205,626 (11.5%) | SlowHTTPTest 14:12–15:05, Hulk 17:45–17:58 |
+| 20 Feb | 1,541,270 | 288,589 (15.8%) | LOIC-HTTP 14:13–17:29 |
+| 21 Feb | 1,677,042 | 1,035,761 (38.2%) | LOIC-UDP 14:08–14:43, HOIC 18:11–19:05 |
+| 22 Feb | 2,037,590 | 2,538 (0.1%) | web brute force, XSS, SQL injection: a trickle **all day** ⚠ |
+| 23 Feb | 1,933,002 | **0** | none, although CIC's schedule had web attacks this day |
+| 27 Feb | 828 | 0 | almost empty |
+| 28 Feb – 1 Mar | 3,992,108 | 188,152 (4.5%) | infiltration: a continuous trickle **all day** ⚠ |
+| 2 Mar | 1,622,658 | 207,703 (11.3%) | bot 14:17–19:54 |
 
-Memorising repeated vectors does **not** inflate scores here. Grouping is kept as hygiene only, with large
-groups allowed to split.
+- **Traffic is captured only in working hours** (12:00–21:30 UTC). Attack flows concentrate at 14–15 h and
+  18 h UTC, normal traffic is flat, so the hour of day separates classes. **Never use time as a feature.**
+- **Real attacks are sharp bursts** of 13 minutes to 3 hours. The ⚠ types are flat all-day trickles, the
+  signature of labelling by time window and host rather than by attack (§6).
+- **Each day holds one attack family,** so a **day-based split** is automatically an unseen-attack test. The
+  catch: the later days (28 Feb – 2 Mar) contain only infiltration (unreliable) and bot.
 
-## Conflicting labels: a hard limit on accuracy
-169 identical feature vectors carry more than one attack type (16,306 rows: mostly ransomware 8,410,
-xss 6,383 and ddos 1,064; common pairs are injection/xss and ddos/injection). Thirteen of them conflict even
-on the binary label. No model can separate these from flow features alone. They are kept and treated as
-irreducible error. Host context is exactly what a GNN adds, so this is a place where the GNN could win.
+## 4. Hosts and roles
+![degree](figures/nf2018_host_degree.png)
 
-## Feature behaviour
-Attack types differ clearly in volume features (bytes, packets, duration), which is why tabular models do so well.
+- **Every flow touches an internal host:**
+  - internal→internal 41.2% of flows;
+  - internal↔external 58.8%;
+  - external→external 0%.
+- **The degree distribution is extremely heavy-tailed:**
+  - flows per host: median 2, p99 539, max 7.3M;
+  - out-neighbours per sender: median 1, p99 62, max 2,764;
+  - flows per directed pair: median 2, p99 105, max 386,720.
+- **Infrastructure hubs:**
 
-![features by class](../results/eda/features_by_class.png)
+  | Host | Flows | Role |
+  |---|---|---|
+  | `172.31.0.2` | 7.32M | AWS DNS resolver |
+  | `172.31.69.25` | 1.17M | victim web/FTP server |
+  | `172.31.69.28` | 1.04M | victim web server |
+  | `169.254.169.254` | 646k | AWS instance metadata |
+  | `0.0.0.0` | 216k | DHCP / unspecified |
 
-- **Skew:** the numeric features have skewness 70–420 (bytes range 0 to 3.9 × 10⁹). No negatives or infinities.
-- **Near-constant columns:** 15 HTTP, SSL and weird columns are more than 99.7% one value.
-- **Zeek quirks:** in 985 rows `src_ip_bytes < src_bytes` (1,669 for the dst side). This is a known Zeek effect
-  from sequence-number byte counting.
-- **Correlation:** only `dst_pkts` and `dst_ip_bytes` correlate above 0.95 (on log scale).
+  These hubs dominate any aggregation unless it is normalised or sampled.
+- **Persistence:**
+  - 98.5% of internal hosts active in the last 4 days were already active in the first 7;
+  - only 31% of external IPs were;
+  - 77% of external IPs appear on a single day.
 
-## Preprocessing (`cyberdefense.data.preprocess`)
-Fitted on the **training split only**, then applied to val and test. Every model uses the same fitted transform.
-- **Numeric:** `log1p`, then standardise.
-- **Categorical:** one-hot encode. Categories seen fewer than 20 times in train, and categories unseen in train,
-  map to an "infrequent" column. This gives **103 features** on the current training split.
-- **Kept as is:** near-constant columns (their rare values identify web attacks, and the infrequent rule bounds
-  their size), both correlated columns, the Zeek quirks, and outliers (attacks are outliers by nature, and the
-  log transform tames the scale).
+  Internal hosts are a stable population; external endpoints are mostly new.
+- **Services:** 63,307 distinct destination ports, but 9 cover 90% of flows. Normal traffic is mostly
+  DNS 53 (7.2M), RDP 3389 (3.0M), HTTPS 443 (2.8M), HTTP 80 (1.3M) and SMB 445 (1.0M).
 
-## Train / validation / test split (`cyberdefense.data.splits`)
-- **70 / 15 / 15**, via `StratifiedGroupKFold` with 20 folds: 3 folds form test, 3 form validation and 14 form
-  train. Seed 42.
-- **Stratified on `attack_type`**, which also stratifies the binary label.
-- **Grouped on `feature_group`** for groups of up to 200 rows (`max_group_size`). Larger groups are split row-wise.
-- The validation split is for model selection and early stopping. Test is touched only for final reporting.
+### 4.1 Attackers and victims per type
+| Type | Source hosts | Destination | Port | Notes |
+|---|---|---|---|---|
+| FTP / SSH brute force | 1 each (`18.221.219.4`, `13.58.98.64`) | `172.31.69.25` | 21 / 22 | external, 100% attack traffic |
+| GoldenEye / Slowloris / SlowHTTPTest / Hulk | 1 each (four different external hosts) | `172.31.69.25` | 80 (SlowHTTPTest 21) | one tool per host |
+| LOIC-HTTP / LOIC-UDP / HOIC | 10 external hosts | `.25` (LOIC-HTTP), `.28` | 80 | the same 10 DDoS bots for all three |
+| **bot** | **8 internal** (`172.31.69.8–.29`) | `18.219.211.138` | 8080 | C&C = the GoldenEye attacker of 15 Feb |
+| infiltration ⚠ | 609 internal | 1,383 (55% to the DNS resolver) | 53, 443, 3389 | ordinary victim traffic |
+| web brute force ⚠ | 561 external | `172.31.69.28` | 500, 445, 22 | internet scanning noise, not web attacks |
+| XSS ⚠ / SQL ⚠ | 4 external | `.28` | 500 (most), 80 | only about 40–90 flows on port 80 |
 
-| | train | val | test |
-|---|---|---|---|
-| rows | 133,310 | 28,567 | 28,567 |
-| attack share | 77.94% | 77.94% | 77.94% |
-| mitm rows | 728 | 157 | 156 |
+### 4.2 What this means
+- **External attacks** (DoS, DDoS, brute force) are a **star**: 1–10 dedicated hosts send only attack traffic
+  to one known victim server. Remembering the attacker or victim solves them (docs/06–08), so **no relational
+  claim should rest on them**. Report them as host/victim-confounded.
+- **The DDoS bots are shared** across LOIC-HTTP, LOIC-UDP and HOIC. Holding out one DDoS type does not hold out
+  its senders.
 
-Checks, recorded in `metadata.json`:
-- Every class has the same share in all three splits (max deviation below 0.01 points).
-- No kept-intact group crosses splits, and no full row appears in more than one split.
-- 22% of test rows share a feature vector with some training row; these are the large common patterns.
+### 4.3 Bot: the clean relational case
+On 2 March each bot host sends **93–100% bot flows** (C&C on port 8080). On the other days the same hosts are
+ordinary internal machines. So bots are **mixed-role across days, not within the attack day**. A model that
+relies on a host's history sees a "normal" host, which makes bot a fair test of *behavioural* detection.
 
-## Imbalance strategy
-Use **class weights** in the loss (balanced sample weights for RF and XGBoost), stratified splits and macro
-metrics. No SMOTE or other synthetic oversampling: synthetic flows have no real hosts, so they can't be placed in
-the graph, and every model must be evaluated on the real distribution.
+One caveat: the C&C server `18.219.211.138` ran the **GoldenEye DoS attack on 15 Feb**. With a day split it is
+a "known attacker" when bot traffic arrives, a destination-reputation shortcut. The bot test must also be run
+with that host's earlier history masked.
 
-## Evaluation protocols
-| Protocol | What it measures | Status |
+## 5. Data quality
+- **No missing values, no negative values;** `Label` and `Attack` agree on every row.
+- **628,474 exact duplicate rows** (3.1%); `prepare_data` removes them.
+- **57.3% of rows repeat another flow's feature vector:** 8.59M distinct vectors, the largest group 703,193
+  rows. Per class this runs from 0% (Hulk) to **100%** (SlowHTTPTest, FTP brute force) and 98.6% (bot).
+  - Attack tools emit identical flows.
+  - Splits must keep identical vectors together (`feature_group`), or test rows are copies of training rows.
+- **24.25% of rows have a feature vector that also occurs with the opposite label** (20,752 vectors). Normal
+  contributes 27% of its rows; the conflict is concentrated in the ⚠ types (§6). The DoS, DDoS, brute-force
+  and bot types have **0%** conflict.
+
+## 6. Label quality: four types are mostly mislabelled normal traffic
+| Type | Rows whose vector also occurs as normal | Evidence |
 |---|---|---|
-| `random` | Stratified split as is, binary and multiclass | Implemented (`scripts/train_baselines.py`) |
-| `unseen_attack` | For each attack type: remove it from train and val, then measure how much of it is still flagged in test (`holdout_recall`), plus FPR on normal traffic | Implemented, binary task |
-| `unseen_host` | For each attacker host with at least 500 attack flows (9 hosts): remove every flow it sends *or* receives from train and val, then measure detection of its test attack flows | Implemented, binary task (docs/03) |
+| brute_force_-xss | **90.8%** | all-day trickle on 22 Feb; port 500 (IKE), not 80 |
+| sql_injection | **78.2%** | same; only about 90 flows on port 80 |
+| infilteration | **76.0%** | 609 internal sources; 55% are DNS queries to the AWS resolver; all-day trickle |
+| brute_force_-web | **68.4%** | 561 external sources hitting ports 500, 445, 22 (internet background scanning) |
+| everything else | 0–2.9% | sharp time windows, dedicated hosts, the expected ports |
 
-Validation found that **100% of test attack flows come from hosts already seen attacking in training**, so the
-random split never tests unfamiliar devices. That is why `unseen_host` exists.
+These labels were assigned by **(host, time window)**: every flow of a victim or attacker IP during the attack
+period was marked, including that host's normal traffic. This matches the CIC labelling problems documented by
+Engelen et al. (docs/08). A model can't learn these labels from behaviour, and scoring well on them would mean
+memorising hosts and times.
 
-An early one-off RF check (70/30 split, no threshold tuning or class weights) suggested ddos 77%, mitm 88%,
-password 89% and injection above 99%. **The formal runs replace it** (docs/02_baselines.md): untuned RF
-recall on the held-out type was injection 0.785, password 0.864, mitm 0.885, dos 0.950, ddos 0.980, and
-0.986 or higher for the rest. The early check had injection and ddos badly wrong.
+→ **Treat them as `noisy_label`.**
+- Exclude them from headline training and evaluation.
+- Optionally report them separately, using only flows on the attack service (port 80 for web attacks).
 
-## Graph structure
-- 776 hosts (51 that send flows, 753 that receive them, 176 IPv6) and only **1,026 unique host pairs** for 190k
-  flows. The graph is a few hubs with many repeated flows (multi-edges).
-- Degree is extremely skewed: median 3, maximum 60,569 (192.168.1.30).
-- **The file has no timestamp column**, so time-windowed or dynamic graphs aren't possible with it. The full
-  ToN-IoT network data does include `ts`, if we need time later.
+## 7. Features
+**Distributions:** every numeric field is heavy-tailed (skew 2 – 720) and many are mostly zero:
+- `RETRANSMITTED_*`: 91–96% zeros;
+- `NUM_PKTS_1024_TO_1514_BYTES`: 79%;
+- `DST_TO_SRC_IAT_MIN`: 78%.
 
-![host degree](../results/eda/host_degree.png)
+→ **log1p + standardisation** (the current preprocessing), fitted on train only.
 
-### Decision: graph design for the GNN stage
-**Homogeneous host graph with flows as edges; the task is edge classification** (E-GraphSAGE style).
-- Nodes: hosts (IPs). Node features are computed from **training edges only**, such as degree and aggregated
-  flow statistics, never the identity.
-- Edges: flows, with the 103 preprocessed features as edge attributes. Multi-edges are kept.
-- Model: GCN, GraphSAGE or GAT produces host embeddings, then an MLP classifies `[h_src ‖ h_dst ‖ flow_features]`.
-  This keeps one comparable model family across all three architectures.
-- Message passing during training uses only training edges, so test flows never leak.
+**Single-feature separability** (ROC-AUC, attack vs normal, on a class-capped sample):
+- **Overall, no feature dominates:** the best is `TCP_WIN_MAX_IN` at 0.82, then `DNS_TTL_ANSWER` 0.68, packet-size
+  histograms about 0.60–0.64, and the rest 0.50–0.58.
+- **Per type, some single features are near-perfect:**
 
-Why not the alternatives:
-- **Heterogeneous** (host / port / service node types): the only real entity here is the host. Ports carry
-  leakage and `service` is 63% "none". Extra node types add complexity without adding information. Keep a
-  host–flow bipartite heterogeneous graph as an optional ablation later.
-- **Flows as nodes** (flows linked when they share a host): the 60k-degree hub alone would create about
-  1.8 × 10⁹ links. Not feasible without heavy sampling.
-- **Temporal graphs:** no timestamps in this file.
+  | Type | Best single feature | ROC-AUC |
+  |---|---|---|
+  | LOIC-UDP | `IN_PKTS` | **1.000** |
+  | HOIC | `TCP_WIN_MAX_IN` | 0.997 |
+  | SSH brute force | `NUM_PKTS_128_TO_256` | 0.992 |
+  | Hulk | `NUM_PKTS_512_TO_1024` | 0.991 |
+  | SQL injection | `NUM_PKTS_512_TO_1024` | 0.98 |
+  | bot | `DST_TO_SRC_SECOND_BYTES` | 0.905 |
+  | infiltration | `IN_BYTES` | **0.661** (indistinguishable) |
 
-## Code map
-| Module | Role |
-|---|---|
-| `cyberdefense/data/ton_iot.py` | Schema constants, `clean()`, `load_split()` |
-| `cyberdefense/data/splits.py` | Stratified group-aware split and its checks |
-| `cyberdefense/data/preprocess.py` | Train-fitted log/scale/one-hot transform |
-| `cyberdefense/data/eda.py` | Figures and graph statistics |
-| `cyberdefense/data/pipeline.py` | `build_dataset()`: the full chain behind `scripts/prepare_data.py` |
-| `tests/test_ton_iot.py`, `test_splits.py`, `test_preprocess.py`, `test_pipeline.py` | Tests on synthetic data |
+  Detecting known DoS and brute-force traffic is easy for any model.
+
+**Tool and OS fingerprints (shortcut risk):**
+- **TTL:** every attack tool shows one fixed `MIN_TTL` (HOIC/LOIC 127, Hulk/SSH 63, bot 128). This identifies
+  the machine, not the behaviour, so it's **excluded by default** (`use_ttl_features`).
+- **`TCP_WIN_MAX_IN`:** the strongest overall feature. It is partly behaviour and partly a TCP-stack
+  fingerprint. Keep it, but run an ablation without it.
+
+**Redundant or useless features:**
+- `FTP_COMMAND_RET_CODE` is **constant** (cardinality 1): drop it.
+- `LONGEST_FLOW_PKT` duplicates `MAX_IP_PKT_LEN` (Spearman r = 1.0), and `RETRANSMITTED_*_PKTS` duplicate their
+  `_BYTES` counterparts (r ≥ 0.998).
+- `ICMP_TYPE` (262 values) encodes `ICMP_IPV4_TYPE` and the ICMP code together.
+- The IAT max/avg pairs correlate at r ≥ 0.97 with the durations.
+- Keep one column of each perfectly duplicated pair. The rest are harmless for trees but add nothing.
+
+**Categoricals:** `PROTOCOL` (6 values), `L7_PROTO` (122), TCP flag bitmasks (35–43), `DNS_QUERY_TYPE` (8).
+One-hot encoding with rare values collapsed (`min_category_freq`) is appropriate.
+
+## 8. Graph structure in time windows
+Window statistics over capture hours (all flows):
+
+| Window | Windows | Flows per window (median / p95 / max) | Hosts (median / p95) | Internal hosts | Host pairs (median / p95) | Windows with any attack |
+|---|---|---|---|---|---|---|
+| 1 min | 6,533 | 3,080 / 6,169 / 27,981 | 604 / 802 | 123 | 1,112 / 1,555 | 38% |
+| **5 min** | 1,397 | 15,484 / 26,899 / 131,849 | 1,554 / 1,991 | 145 | 4,248 / 5,578 | 37% |
+| 15 min | 504 | 44,501 / 76,206 / 384,496 | 3,008 / 3,776 | 171 | 9,779 / 12,883 | 36% |
+| 60 min | 141 | 170,500 / 282,627 / 1.14M | 7,062 / 8,696 | 198 | 26,292 / 35,504 | 38% |
+
+Attacks dominate (> 50% of a window's flows) in only 2–3% of windows. Most attack windows are mixed with normal
+traffic, which is good for learning.
+
+**Structural signal** (5-minute windows; single-feature ROC-AUC, type vs normal; computed from IPs only):
+
+| Type | Flows of the same pair in the window | Sender's flows | Sender's distinct destinations | Receiver's distinct senders |
+|---|---|---|---|---|
+| **bot** | **0.963** | 0.878 | 0.922 | 0.808 |
+| DoS (4 types), FTP/SSH brute force | 1.000 | 0.996–1.000 | 0.943 | 0.92–0.96 |
+| LOIC-HTTP / HOIC | 0.996 / 1.000 | 0.988 / 0.999 | 0.943 | 0.67 / 0.61 |
+| XSS ⚠ / SQL ⚠ | 0.66 / 0.67 | 0.93 / 0.94 | 0.93 / 0.94 | 0.78 / 0.76 |
+| infiltration ⚠ | 0.76 | 0.72 | 0.59 | 0.51 |
+
+- **Window-local structure carries strong behavioural signal** (rates, fan-out, repetition): for bot it beats
+  every flow feature.
+- These are counts that a GNN aggregates, but a tabular model can also receive them as features. **The fair
+  comparison is a GNN against RF/XGBoost given the same window aggregates.** The GNN must win on top of that,
+  through multi-hop or learned aggregation.
+
+## 9. Decisions for the next phase
+### 9.1 Data preparation
+- **Replace random normal-flow sampling with time-window sampling for graph experiments.** Random sampling
+  keeps 3% of normal edges, so neighbourhoods disappear and a host's window degree no longer means anything.
+  Options:
+  - all flows of selected windows (for example every 5-min window containing attacks plus an equal number of
+    normal-only windows);
+  - or all flows of selected days.
+
+  The tabular baselines can keep the current class-capped sample, but they must be **evaluated on the same test
+  windows** as the GNNs.
+- **Keep:** exact-duplicate removal, `feature_group` splitting, log1p + scaling fitted on train, and excluding
+  IPs, ports, time and TTL as features.
+- **Drop:** `FTP_COMMAND_RET_CODE` (constant) and one of each perfect duplicate pair. Keep `TCP_WIN_MAX_IN`, with
+  an ablation.
+- **Noisy types** (XSS, SQL injection, infiltration, web brute force) are out of the headline.
+
+### 9.2 Splits and protocols
+1. **Leave-one-attack-day-out.** Train and validate on the other attack days plus normal days (22 and 23 Feb are
+   normal-only in practice); test on the held-out day. Each held-out day is a new attack family **and** a new
+   time period. This replaces the random split as the main protocol.
+2. **Bot, unseen hosts:** train on 14 Feb – 1 Mar, test on 2 Mar, with the 8 bot hosts' earlier traffic
+   present (they're "known normal" hosts) and the C&C server's history masked (§4.3).
+3. **Random stratified split:** a sanity check only (saturated, host-confounded).
+4. **Cross-dataset:** NF-UNSW-NB15-v3 as an extra test set (same NetFlow schema).
+
+### 9.3 Graph construction
+- **Snapshot graphs per 5-minute window** (1 min for the DDoS peaks if memory requires).
+  - Median 15k flows and 1.5k hosts per window (p95 27k / 2k): small enough for full-batch GNN training per
+    window on a laptop.
+- **Nodes = hosts active in the window.**
+  - Features computed **only from that window's flows**: degree, flow and byte counts, distinct ports, the mean
+    of incident flow features.
+  - An `internal` flag (private address range): a property of the address space, not identity.
+  - No IP ids and no cross-window history, so the model can't carry a reputation.
+- **Edges = flows** (a multigraph, for edge classification). Keep the per-pair flow count in the window as an
+  edge feature; it is the strongest structural signal.
+- **Hubs:** the DNS resolver, metadata service and `0.0.0.0` have thousands of edges per window. Use mean or
+  attention aggregation and **cap neighbours per node** (sampling), or the hubs dominate.
+- **Heterogeneous variant:**
+  - node types **internal host**, **external host** and **service** (dst port + protocol, 9 ports cover 90%);
+  - edge types host→host (flow, classified) and host→service.
+  - External hosts are 99.8% of nodes but carry little information individually; the service nodes connect
+    otherwise-isolated external leaves through shared behaviour.
+
+### 9.4 Models
+- **Edge classifiers, inductive:**
+  - **GraphSAGE (mean)** and **GAT** on window snapshots, with the existing shared edge head
+    `[h_u, h_v, edge_features]`;
+  - E-GraphSAGE-style edge-feature aggregation.
+- **GCN is a poor fit:** symmetric degree normalisation on hubs with up to 7M edges is unstable, and it is
+  transductive.
+- **2 layers are enough:** most attack structure is a 1-hop star (attacker→victim, bot→C&C). The second hop
+  adds victim context.
+- **Temporal models** (TGN/TGAT) are possible because timestamps exist. Defer them until snapshot GNNs beat the
+  window-aggregate baselines.
+- **References in every comparison:**
+  - MLP (flow features only);
+  - **RF/XGBoost + window aggregates**;
+  - `host_prior`;
+  - the no-message-passing GNN.
+
+### 9.5 Parameters
+- **Imbalance:**
+  - class weights (87% normal; HOIC is 40% of attacks);
+  - or cap HOIC/FTP within a training window;
+  - binary threshold chosen on val.
+- **Neighbour sampling** per layer of about 25 / 10 (hub cap).
+- **Hidden size** 64–128; dropout 0.2; Adam 1e-3.
+- **Early stopping** on the validation day's loss.
+- **Window size** 5 min by default, with 1 and 15 min as a sensitivity check.
+
+### 9.6 Evaluation
+- Per attack type, at **matched actual FPR** (0.25% and 1%) with Wilson CIs, as in docs/07.
+- Report the confounded external attacks separately from **bot**, the clean relational test.
+- Report the ⚠ types separately, if at all.
+
+## 10. Open questions
+- 23 Feb has no attack labels although CIC scheduled web attacks that day. Treat it as normal, or drop it
+  because it may be unlabelled?
+- 27 Feb has only 828 flows: drop it.
+- Should external hosts be collapsed by network block (for example /16) to shrink the graph, or kept per IP?
+  Decide after the first window graphs are built.

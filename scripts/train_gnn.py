@@ -11,9 +11,9 @@ Run scripts/build_graph.py once first to confirm the graph validates. Usage::
     uv run python scripts/train_gnn.py --graph.message_passing transductive   # -> gnn_transductive
 
 Outputs:
-    results/<experiment>/<protocol>/<task>/<run>.json   metrics, confusion, epoch history
-    results/<experiment>/summary.csv, summary_aggregated.csv
-    results/tensorboard/<experiment>/                   loss/train, loss/val, final metrics
+    results/<split_set>/<experiment>/<protocol>/<task>/<run>.json   metrics, epoch history
+    results/<split_set>/<experiment>/summary.csv, summary_aggregated.csv
+    results/<split_set>/tensorboard/<experiment>/       loss/train, loss/val, final metrics
 where <experiment> is gnn, or gnn_<message_passing>_<node_features> for non-defaults.
 Then compare with the frozen baselines: scripts/compare_models.py.
 """
@@ -23,7 +23,7 @@ import logging
 import pandas as pd
 
 from cyberdefense.config import ExperimentConfig
-from cyberdefense.data.ton_iot import SPLITS, load_split
+from cyberdefense.data.schema import SPLITS, load_split
 from cyberdefense.freeze import verify_splits
 from cyberdefense.gnn.experiment import experiment_name, run_all
 from cyberdefense.reporting import headline_table
@@ -37,12 +37,12 @@ def main() -> None:
     cfg = ExperimentConfig(_cli_parse_args=True)
     verify_splits(cfg, cfg.graph.manifest)
     log.info("splits match the frozen manifest %s", cfg.graph.manifest)
-    splits = {name: load_split(cfg.ton_iot, name) for name in SPLITS}
+    splits = {name: load_split(cfg.dataset, name) for name in SPLITS}
     summary = run_all(cfg, splits)
     if not summary.empty:
         with pd.option_context("display.width", 200, "display.max_columns", 30):
             log.info("headline (test):\n%s", headline_table(summary, cfg.tuning.holdouts).T)
-    log.info("results -> %s/%s/", cfg.paths.results_dir, experiment_name(cfg))
+    log.info("results -> %s/%s/", cfg.run_dir, experiment_name(cfg))
 
 
 if __name__ == "__main__":
