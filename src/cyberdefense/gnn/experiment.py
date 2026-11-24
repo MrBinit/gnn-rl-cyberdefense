@@ -61,8 +61,13 @@ IMBALANCE = "class_weight"  # the only strategy for GNNs (resampling cannot touc
 
 
 def experiment_name(cfg: ExperimentConfig) -> str:
-    """gnn, plus non-default graph options and the ablation: gnn_transductive, gnn_no_self_loops."""
+    """gnn, plus non-default graph options and the ablation: gnn_transductive, gnn_no_self_loops.
+
+    Window features as edge inputs add ``win`` (gnn_win).
+    """
     parts = ["gnn"]
+    if cfg.dataset.use_window_features:
+        parts.append("win")
     if cfg.graph.message_passing != "train_only":
         parts.append(cfg.graph.message_passing)
     if cfg.graph.node_features != "constant":

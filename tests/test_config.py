@@ -41,3 +41,15 @@ def test_baseline_summaries_default_to_the_frozen_split_set(tmp_path: Path) -> N
     assert cfg.baseline_summaries == [summary]
     explicit = _cfg("bot", gnn=GNNConfig(compare_with=[Path("x.csv")]))
     assert explicit.baseline_summaries == [Path("x.csv")]
+
+
+def test_window_feature_runs_get_their_own_experiment_folder() -> None:
+    from cyberdefense.baselines.experiment import experiment_name as baseline_name
+    from cyberdefense.gnn.experiment import experiment_name as gnn_name
+
+    plain = _cfg("random")
+    win = ExperimentConfig(dataset=DatasetConfig(use_window_features=True))
+    assert (baseline_name(plain), baseline_name(win)) == ("baselines", "baselines_win")
+    assert (gnn_name(plain), gnn_name(win)) == ("gnn", "gnn_win")
+    tuned = win.model_copy(update={"baseline": win.baseline.model_copy(update={"use_tuned": True})})
+    assert baseline_name(tuned) == "baselines_tuned_disjoint_win"

@@ -51,12 +51,14 @@ log = logging.getLogger(__name__)
 def experiment_name(cfg: ExperimentConfig) -> str:
     """Untuned and each tuning variant get their own result and TensorBoard folders.
 
-    tuning -> baselines_tuned; tuning_disjoint -> baselines_tuned_disjoint.
+    tuning -> baselines_tuned; tuning_disjoint -> baselines_tuned_disjoint. Runs with the
+    window features get a ``_win`` suffix (baselines_win), so both variants coexist.
     """
+    win = "_win" if cfg.dataset.use_window_features else ""
     if not cfg.baseline.use_tuned:
-        return "baselines"
+        return f"baselines{win}"
     suffix = cfg.tuning.out_dir.name.removeprefix("tuning").strip("_")
-    return f"baselines_tuned_{suffix}" if suffix else "baselines_tuned"
+    return (f"baselines_tuned_{suffix}" if suffix else "baselines_tuned") + win
 
 
 @dataclass(frozen=True)
